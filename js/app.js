@@ -114,8 +114,10 @@ function toast(e) {
   if (e.href) el.onclick = () => { location.hash = e.href; };
   const box = $('#toasts');
   box.appendChild(el);
-  while (box.children.length > 3) box.firstElementChild.remove();
-  setTimeout(() => el.classList.add('out'), 7000);
+  const max = matchMedia('(max-width: 720px)').matches ? 1 : 3;
+  while (box.children.length > max) box.firstElementChild.remove();
+  el.addEventListener('click', () => el.remove());
+  setTimeout(() => el.classList.add('out'), max === 1 ? 4500 : 7000);
   setTimeout(() => el.remove(), 7600);
   if (ui.notify && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
     try { new Notification(e.text, { body: e.sub || '' }); } catch { /* ignore */ }

@@ -20,11 +20,12 @@ function topPanel() {
       <i class="seg wave" style="left:${P(230)}%;width:${P(240) - P(230)}%"><span>Blue Wave</span></i>
       <i class="seg tsunami" style="left:${P(240)}%;width:${100 - P(240)}%"><span>Blue Tsunami</span></i>
       <b class="maj" style="left:${P(218)}%"><em>218</em></b>
-      <b class="fc" style="left:${P(HOUSE.forecast)}%"><em>Forecast 230</em></b>
-      ${proj !== null ? `<b class="live" style="left:${P(proj)}%"><em>~${proj} from swing</em></b>` : ''}
+      <b class="fc" style="left:${P(HOUSE.forecast)}%"></b>
+      ${proj !== null ? `<b class="live" style="left:${P(proj)}%"></b>` : ''}
       ${sig.map((s, i) => `<b class="sigm sgn-${s.state}${P(s.seats) > 70 ? ' flipx' : ''}" style="left:${P(s.seats)}%;--row:${i % 3}" title="${esc(s.note)}"><em>${esc(s.label)}${s.state === 'hit' ? ' ✓' : s.state === 'miss' ? ' ✗' : ''}</em></b>`).join('')}
     </div>
     <div class="ticks">${[210, 215, 220, 225, 230, 235, 240, 245, 250, 255].map((v) => `<span style="left:${P(v)}%">${v}</span>`).join('')}</div>
+    <div class="bs-key"><span><i class="k-fc"></i>DDHQ forecast: 230</span>${proj !== null ? `<span><i class="k-sw"></i>Results so far point to <b>~${proj}</b></span>` : '<span class="muted">Gold marker appears once seats are mostly counted</span>'}<span><i class="k-sg"></i>Flip signals (cards below)</span></div>
     <div class="house-score">
       <div><span class="lbl">Called</span><b class="d">D ${h.calledD}</b> · <b class="r">R ${h.calledR}</b></div>
       <div><span class="lbl">Leading (uncalled)</span><b class="d">D ${h.leadD}</b> · <b class="r">R ${h.leadR}</b></div>

@@ -636,7 +636,7 @@ td.inby { font-size: 12px; white-space: nowrap; }
 .sg-row { display: grid; grid-template-columns: 74px 168px minmax(380px, 1fr) 46px 46px 50px 50px 70px 150px; gap: 0 10px; align-items: center; min-height: 31px; padding: 1px 6px; }
 .sg-row:nth-child(even):not(.sg-head):not(.sg-foot) { background: var(--sg-row); }
 .sg-row.focus { outline: 2px solid var(--gold); outline-offset: -2px; border-radius: 4px; }
-.sg-row.is-called .sg-seat b { text-decoration: underline; text-decoration-color: var(--gold); text-underline-offset: 3px; text-decoration-thickness: 2px; }
+.sg-row.is-called { box-shadow: inset 3px 0 0 var(--gold); }
 .sg-head { align-items: end; min-height: 46px; border-bottom: 1px solid var(--rule); font-size: 10px; font-weight: 800; letter-spacing: 0.04em; color: var(--ink-2); }
 .sg-head small { display: block; font-size: 8.5px; color: var(--muted); }
 .sg-foot { min-height: 22px; }
@@ -692,4 +692,29 @@ td.inby { font-size: 12px; white-space: nowrap; }
   .sg-track .c24 { width: 10px; height: 10px; }
   .sg-track .lv { width: 13px; height: 13px; }
   .sg-row .n { font-size: 11px; }
+}
+
+/* ---------- mobile + scale fixes ---------- */
+.sg-seat small { white-space: nowrap; }
+.bs-key { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 11.5px; color: var(--ink-2); margin: -10px 0 16px; }
+.bs-key span { display: inline-flex; align-items: center; gap: 6px; }
+.bs-key i { display: inline-block; flex: none; }
+.k-fc { width: 0; height: 14px; border-left: 2px dashed var(--muted); }
+.k-sw { width: 5px; height: 14px; background: var(--gold); border-radius: 2px; }
+.k-sg { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-2); }
+.big-scale .fc { top: -8px; bottom: -8px; }
+@media (max-width: 720px) {
+  .sg-seat .ct { display: none; }
+  .big-scale { margin-top: 24px; }
+  .big-scale .sigm { height: 12px; }
+  .big-scale .sigm em { display: none; }
+  .big-scale .seg span { font-size: 8px; letter-spacing: 0.04em; }
+  .big-scale .maj em { font-size: 10px; }
+  .ticks span { font-size: 9.5px; }
+  .ticks span:nth-child(even) { display: none; }
+  .bs-key { margin-top: -12px; font-size: 11px; }
+  .toasts { top: calc(env(safe-area-inset-top) + 8px); bottom: auto; left: 12px; right: 12px; max-width: none; }
+  .toast { padding: 7px 12px; border-left-width: 4px; border-radius: 8px; }
+  .toast b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .toast small { font-size: 11px; }
 }

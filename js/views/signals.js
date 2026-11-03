@@ -103,7 +103,7 @@ export function signalsChart({ compact = false } = {}) {
         <span class="n">2024</span><span class="n">DDHQ</span><span class="n"><small>BELOW</small>WORSE</span><span class="n"><small>ABOVE</small>BETTER</span><span class="n">LIVE</span><span>READ</span>
       </div>
       ${list.map((x) => `<div class="sg-row ${x.r?.called ? 'is-called' : ''} ${ui.focus === x.d ? 'focus' : ''}" id="h-${x.d}">
-        <span class="sg-seat"><b>${x.d}</b><small>${fmtNightTime(hhmm(x.close))} CT</small></span>
+        <span class="sg-seat"><b>${x.d}</b><small>${fmtNightTime(hhmm(x.close))}<span class="ct"> CT</span></small></span>
         <span class="sg-m">${esc(x.dn)}${x.inc === 'd' ? ' (i)' : ''} v. ${esc(x.rn)}${x.inc === 'r' ? ' (i)' : ''}${x.inc === null ? ' · open' : ''}${x.lateR ? '<small class="late">late votes leaned R in 2022</small>' : ''}</span>
         ${track(x)}
         <span class="n m-${marginClass(x.m24)}">${lbl(x.m24)}</span>
