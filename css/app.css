@@ -1015,13 +1015,13 @@ details.wl-row[open] > summary { background: var(--wash); }
   .early-guide, .early-race-status { color: var(--muted); font-size: 12px; }
   .early-race-status, .early-comparison { display: block; }
   .early-comparison { margin-top: 3px; font-size: 13px; }
-  .early-bars { display: grid; gap: 4px; margin: 8px 16px 0 0; }
-  .early-bar-row { display: grid; grid-template-columns: 90px minmax(0, 1fr) 46px; align-items: center; gap: 6px; font-size: 11px; }
-  .early-bar-row > b { text-align: right; }
-  .early-track { position: relative; height: 8px; background: var(--wash); }
-  .early-track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; border-left: 1px solid var(--muted); }
-  .early-track i { position: absolute; height: 100%; background: currentColor; }
-  .early-track .forecast { opacity: .48; }
+  .early-track { display: block; position: relative; height: 5px; margin: 15px 4px 9px; border-radius: 4px; background: var(--rule); }
+  .early-even { position: absolute; left: 50%; top: -4px; height: 13px; border-left: 1px solid var(--muted); }
+  .early-marker { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; border-radius: 50%; }
+  .early-marker.forecast { top: -4px; border: 2px solid var(--ink); background: var(--card); }
+  .early-marker.current { background: currentColor; }
+  .early-labels { display: flex; justify-content: space-between; gap: 8px; padding-right: 15px; color: var(--muted); font-size: 12px; }
+  .early-labels b { color: var(--ink); }
   .county-values { margin-top: 6px; font-size: 12px; padding-right: 14px; }
   .county-values b { display: block; }
   .pace-mobile-chart { display: block; max-width: 100%; width: 360px; margin-top: 12px; }
