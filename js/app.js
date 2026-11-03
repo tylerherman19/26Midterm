@@ -65,7 +65,7 @@ function renderTicker() {
 }
 
 let lastRoute = null;
-function render() {
+function render({ background = false } = {}) {
   pendingRender = false;
   const { route, params } = parseHash();
   const r = ROUTES[route];
@@ -73,7 +73,15 @@ function render() {
   renderTicker();
   const view = $('#view');
   const y = window.scrollY;
+  // Replacing a native select dismisses its open picker on mobile.
+  const stateResults = background && route === 'states' && lastRoute === location.hash
+    ? view.querySelector('.state-page') : null;
   try {
+    if (stateResults) {
+      stateResults.outerHTML = r.view.render(params, { includePicker: false });
+      renderStatus();
+      return;
+    }
     const group = ['house', 'signals'].includes(route) ? [['signals', 'Early House'], ['house', 'All House']]
       : ['legislatures', 'counties'].includes(route) ? [['legislatures', 'Legislatures'], ['counties', 'Counties']]
       : ['tonight', 'pace'].includes(route) ? [['tonight', 'Hour by hour'], ['pace', '2024 count pace']] : [];
@@ -274,7 +282,7 @@ function init() {
 
   window.addEventListener('hashchange', render);
   onToast(toast);
-  onUpdate(() => { diffFeed(); if (ui.dragging || isTyping()) { pendingRender = true; renderTicker(); renderStatus(); return; } render(); });
+  onUpdate(() => { diffFeed(); if (ui.dragging || isTyping()) { pendingRender = true; renderTicker(); renderStatus(); return; } render({ background: true }); });
   setHouseFallbackList(Object.keys(HOUSE_META));
 
   const params = new URLSearchParams(location.search);
@@ -284,7 +292,7 @@ function init() {
   if (mode === 'demo') $('#sim-speed').value = String(data.sim?.speed || 120);
 
   setInterval(tickClock, 1000);
-  setInterval(() => { if (data.mode === 'live') render(); }, 30_000); // time-based states (tells, "now")
+  setInterval(() => { if (data.mode === 'live') render({ background: true }); }, 30_000); // time-based states (tells, "now")
   tickClock();
   render();
 }
