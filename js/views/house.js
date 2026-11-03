@@ -3,6 +3,7 @@ import { house, houseTally, houseSignals, riptideTests, houseSeatBreaks, tierFro
 import { EARLY_HOUSE, HOUSE_TIER_SEATS, HOUSE_WATCH, HOUSE, CLOSEST_17, REDRAWN } from '../data/guide.js';
 import { marginTag, tierChip, seatBar, pos, tierBar } from '../ui.js';
 import { ui } from '../state.js';
+import { signalsChart } from './signals.js';
 
 function topPanel() {
   const h = houseTally();
@@ -127,5 +128,5 @@ function watchList() {
 
 export function render(params) {
   ui.focus = params.d || null;
-  return `<div class="grid house-page">${topPanel()}${earlySignals()}${tierSeats()}${watchList()}</div>`;
+  return `<div class="grid house-page">${topPanel()}${signalsChart({ compact: true })}${tierSeats()}${watchList()}</div>`;
 }

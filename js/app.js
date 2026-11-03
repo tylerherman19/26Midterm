@@ -7,6 +7,7 @@ import { ui } from './state.js';
 import * as overview from './views/overview.js';
 import * as states from './views/states.js';
 import * as houseView from './views/house.js';
+import * as signals from './views/signals.js';
 import * as tonight from './views/tonight.js';
 import * as counties from './views/counties.js';
 import * as legis from './views/legis.js';
@@ -15,6 +16,7 @@ import * as pace from './views/pace.js';
 const ROUTES = {
   '': { title: 'Overview', view: overview },
   states: { title: 'Senate & Governor', view: states },
+  signals: { title: 'First House races', view: signals },
   house: { title: 'House', view: houseView },
   tonight: { title: 'Hour by hour', view: tonight },
   counties: { title: 'Counties', view: counties },
@@ -110,7 +112,9 @@ function toast(e) {
   el.className = `toast side-${e.side}`;
   el.innerHTML = `<b>${esc(e.text)}</b>${e.sub ? `<small>${esc(e.sub)}</small>` : ''}`;
   if (e.href) el.onclick = () => { location.hash = e.href; };
-  $('#toasts').appendChild(el);
+  const box = $('#toasts');
+  box.appendChild(el);
+  while (box.children.length > 3) box.firstElementChild.remove();
   setTimeout(() => el.classList.add('out'), 7000);
   setTimeout(() => el.remove(), 7600);
   if (ui.notify && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
@@ -154,6 +158,8 @@ function init() {
   document.addEventListener('click', (e) => {
     const f = e.target.closest('[data-house-filter]');
     if (f) { ui.houseFilter = f.dataset.houseFilter; render(); }
+    const sg = e.target.closest('[data-sg-sort]');
+    if (sg) { ui.sgSort = sg.dataset.sgSort; render(); }
   });
 
   window.addEventListener('hashchange', render);

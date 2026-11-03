@@ -2,4 +2,5 @@
 export const ui = {
   focus: null,
   houseFilter: 'all',
+  sgSort: 'guide',
 };

@@ -162,11 +162,11 @@ export function firstHouseCard() {
     const r = h.res;
     const diff = r?.hasVotes ? r.margin - ddhq : null;
     const verdict = diff === null ? '' : diff < -3 ? '<span class="vd vd-r">worse</span>' : diff > 3 ? '<span class="vd vd-d">better</span>' : '<span class="vd">within 3</span>';
-    return `<a class="fh" href="#/house?d=${d}"><b>${d}</b><span class="nm">${esc(dn)} v. ${esc(rn)}</span><span>${marginTag(ddhq, { digits: 0 })}</span><span>${r?.hasVotes ? marginTag(r.margin) : '<span class="muted">—</span>'}</span><span>${r?.called ? `<span class="m m-${r.called}">✓</span>` : r?.hasVotes ? `<span class="muted">${r.rep}%</span>` : ''}</span><span>${verdict}${h.flip ? ' <span class="flip">FLIP</span>' : ''}</span></a>`;
+    return `<a class="fh" href="#/signals?d=${d}"><b>${d}</b><span class="nm">${esc(dn)} v. ${esc(rn)}</span><span>${marginTag(ddhq, { digits: 0 })}</span><span>${r?.hasVotes ? marginTag(r.margin) : '<span class="muted">—</span>'}</span><span>${r?.called ? `<span class="m m-${r.called}">✓</span>` : r?.hasVotes ? `<span class="muted">${r.rep}%</span>` : ''}</span><span>${verdict}${h.flip ? ' <span class="flip">FLIP</span>' : ''}</span></a>`;
   }).join('');
   const sig = houseSignals();
   return `<section class="card">
-    <div class="card-h"><h3>First House reads</h3><a class="more" href="#/house">All House →</a></div>
+    <div class="card-h"><h3>First House reads</h3><a class="more" href="#/signals">Full early-signals chart →</a></div>
     <div class="fh-head"><span>Seat</span><span></span><span>DDHQ</span><span>Live</span><span></span><span>vs DDHQ</span></div>
     <div class="fh-list">${rows}</div>
     <h4 class="sub">How big is the night</h4>
