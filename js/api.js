@@ -1,10 +1,9 @@
-// civicAPI data layer: polling, caching, history tracking, and rehearsal-mode switching.
+// civicAPI data layer: polling, caching and history tracking.
 // Docs: https://civicapi.org/api-documentation  (free, no auth, CORS open; please keep attribution in the footer)
 
 import { RACE_IDS } from './data/raceIds.js';
 import { STATES } from './data/guide.js';
 import { nightMinutesFromDate, hhmm, store as ls } from './util.js';
-import { Simulator } from './sim.js';
 
 const BASE = 'https://civicapi.org/api/v2';
 const DATE = '2026-11-03';
@@ -19,7 +18,7 @@ export const FEEDS = [
 ];
 
 export const data = {
-  mode: 'live', // 'live' | 'demo'
+  mode: 'live',
   races: new Map(), // id -> race summary {id, election_name, type, province, district, percent_reporting, candidates[]}
   details: new Map(), // id -> full race payload incl. region_results
   history: {}, // id -> [[nightMin, reporting, margin]]
@@ -29,7 +28,6 @@ export const data = {
   lastUpdate: 0,
   nextUpdate: 0,
   inflight: 0,
-  sim: null,
 };
 
 const listeners = new Set();
@@ -46,7 +44,6 @@ function emit() {
 
 // ---------- clock ----------
 export function nowNight() {
-  if (data.mode === 'demo' && data.sim) return data.sim.t;
   return nightMinutesFromDate(new Date());
 }
 
@@ -215,7 +212,6 @@ export function startLive() {
 }
 
 export async function refreshNow() {
-  if (data.mode === 'demo') { data.sim?.tick(true); return { ok: true, at: Date.now(), sim: true }; }
   const before = { ...data.status };
   await Promise.all([
     fetchSearch('general', { election_type: 'General' }),
@@ -232,9 +228,6 @@ export async function refreshNow() {
  * currently failing; offline: nothing good for 6+ minutes; connecting: no successful load yet.
  */
 export function feedHealth() {
-  if (data.mode === 'demo') {
-    return data.errors.general ? { state: 'stale', everLoaded: true, label: 'Simulated feed interruption' } : { state: 'demo', everLoaded: true };
-  }
   const last = Math.max(data.status.general || 0, data.status.statewide || 0);
   const everLoaded = last > 0;
   if (!everLoaded) return { state: Object.keys(data.errors).length ? 'offline' : 'connecting', everLoaded, last: null };
@@ -244,46 +237,11 @@ export function feedHealth() {
   return { state: 'offline', everLoaded, last, age };
 }
 
-export function startDemo(opts = {}) {
-  data.simScenario = opts.scenario || data.simScenario || 'random';
-  stopAll();
-  data.mode = 'demo';
-  data.races.clear();
-  data.details.clear();
-  data.history = {};
-  data.errors = {};
-  data.sim = new Simulator({
-    ...opts,
-    scenario: data.simScenario,
-    onInterrupt(on) {
-      if (on) data.errors.general = 'Simulated feed interruption'; else delete data.errors.general;
-      emit();
-    },
-    onData(races, details) {
-      races.forEach((r) => ingest(r));
-      details.forEach((r) => ingest(r, { detail: true }));
-      data.lastUpdate = Date.now();
-      emit();
-    },
-  });
-  data.sim.start();
-  emit();
-}
-
 function stopAll() {
   stops.forEach((s) => s());
   stops = [];
   timers.forEach(clearTimeout);
   timers.length = 0;
-  if (data.sim) { data.sim.stop(); data.sim = null; }
-}
-
-export function setMode(mode) {
-  ls('en26-mode', mode);
-  data.races.clear();
-  data.details.clear();
-  data.history = {};
-  if (mode === 'demo') startDemo(); else startLive();
 }
 
 // ---------- history persistence (live mode only) ----------

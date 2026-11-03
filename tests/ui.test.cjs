@@ -6,6 +6,7 @@ const BASE = process.env.BASE || 'http://localhost:8765';
 
 (async () => {
   const b = await chromium.launch();
+  const shows = (loc) => loc.first().waitFor({ state: 'visible', timeout: 10000 }).then(() => true, () => false);
 
   // 1. Live, real civicAPI, before returns
   {
@@ -29,6 +30,7 @@ const BASE = process.env.BASE || 'http://localhost:8765';
     await p.click('[data-health]'); await p.waitForTimeout(300);
     const hp = await p.innerText('.health-pop');
     check('live: feed panel lists each feed', /House, Senate and national tallies/.test(hp));
+    await ctx.route('**/civicapi.org/**', (r) => r.abort()); // freeze the feed so a background poll can't refresh the aged timestamps
     await p.evaluate(async () => { const m = await import(new URL('js/api.js', document.baseURI).href); m.data.status.general -= 200000; m.data.status.statewide -= 200000; m.data.status.general = m.data.status.general; });
     await p.click('body', { position: { x: 5, y: 600 } });
     await p.waitForTimeout(1500);
@@ -58,91 +60,44 @@ const BASE = process.env.BASE || 'http://localhost:8765';
     await ctx.close();
   }
 
-  // 3. Rehearsal
+  // House scale: no illustrative race markers, no rehearsal
   {
     const ctx = await b.newContext({ viewport: { width: 1400, height: 900 } });
+    await ctx.route('**/civicapi.org/**', (r) => r.abort());
     const p = await ctx.newPage();
-    const errs = []; p.on('pageerror', (e) => errs.push(e.message));
-    await p.goto(`${BASE}/?demo#/house`); await p.waitForTimeout(1200);
-    const setT = (t) => p.evaluate((t) => { const s = document.querySelector('#sim-t'); s.value = t; s.dispatchEvent(new Event('input')); }, t);
-    const pause = () => p.evaluate(() => { const pl = document.querySelector('#sim-play'); if (pl.textContent === 'Pause') pl.click(); });
-    await pause();
-    check('demo: REHEARSAL in header', /REHEARSAL/.test(await p.innerText('#status')));
-    await setT(1125); await p.waitForTimeout(600);
-    check('demo: SIM tags on simulated races', (await p.$$('.simtag')).length > 5);
-    for (const [val, sign] of [['dem', 1], ['gop', -1]]) {
-      await p.selectOption('#sim-scenario', val); await p.waitForTimeout(500); await pause();
-      await setT(1500); await p.waitForTimeout(900);
-      const txt = await p.innerText('.st-est');
-      const m = txt.match(/([DR])\+([\d.]+)\s*\n?\s*median/);
-      const v = m ? (m[1] === 'D' ? 1 : -1) * Number(m[2]) : null;
-      check(`demo ${val}: swing estimate has expected sign`, v !== null && Math.sign(v) === sign, txt.replace(/\n/g, ' ').slice(0, 140));
-    }
-    await p.selectOption('#sim-scenario', 'slow'); await p.waitForTimeout(500); await pause();
-    await setT(1290); await p.waitForTimeout(800);
-    const slowTxt = await p.innerText('.st-leads');
-    check('demo slow: more races still without votes', /no votes yet \d+/.test(slowTxt), slowTxt.replace(/\n/g, ' '));
-    await p.selectOption('#sim-scenario', 'interrupt'); await p.waitForTimeout(500); await pause();
-    await setT(1240); await p.waitForTimeout(900);
-    check('demo interrupt: STALE during outage', /STALE/.test(await p.innerText('#status')), (await p.innerText('#status')).replace(/\n/g, ' '));
-    await setT(1300); await p.waitForTimeout(900);
-    check('demo interrupt: recovers after outage', /REHEARSAL/.test(await p.innerText('#status')));
+    await p.goto(`${BASE}/#/house`); await p.waitForSelector('.ns-bar');
     check('House centerpiece keeps the majority scale', /218 majority/.test(await p.innerText('.ns-bar')));
-    check('House centerpiece omits Scenario Explorer controls', (await p.locator('[data-night-shift], [data-night-slider]').count()) === 0);
-    const tk = await p.innerText('#ticker'); const cp = await p.innerText('.st-calls');
-    const tD = Number((tk.match(/House\s*(\d+)/i) || [])[1]); const cD = Number((cp.match(/Democrats called\s*(\d+)/i) || [])[1]);
-    check('consistency: House D called same in ticker and centerpiece', tD === cD, `${tD} vs ${cD}`);
-    await p.evaluate(() => { location.hash = '#/'; }); await p.waitForTimeout(500);
-    const ov = await p.innerText('.night .st-calls');
-    check('consistency: overview centerpiece matches House tab', Number((ov.match(/Democrats called\s*(\d+)/i) || [])[1]) === cD);
-    await p.focus('[data-map-st="GA"]'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-    check('map: Enter on focused state shows its detail', /Georgia Senate/.test(await p.innerText('.maps')));
-    await p.evaluate(() => { location.hash = '#/house'; }); await p.waitForTimeout(400);
-    await p.click('[data-key=night-races] > summary');
-    await p.locator('.ex-race summary').first().click();
-    await p.evaluate(async () => { (await import(new URL('js/api.js', document.baseURI).href)).data.sim.tick(); }); await p.waitForTimeout(600);
-    check('race marker detail stays open across re-render', await p.$eval('.ex-race', (d) => d.open));
-    await p.evaluate(() => { location.hash = '#/signals'; }); await p.waitForTimeout(400);
-    await p.click('[data-sg-sort="miss"]'); await p.waitForTimeout(300);
-    check('signals: active sort is marked', await p.$eval('[data-sg-sort="miss"]', (x) => x.getAttribute('aria-pressed') === 'true'));
-    await p.click('#mode-btn'); await p.waitForTimeout(2500);
-    const st = await p.innerText('#status');
-    check('back to live: leaves rehearsal and drops SIM tags', !/REHEARSAL/.test(st) && !(await p.$('.simtag')), st.replace(/\n/g, ' '));
-    check('demo: no JS errors', errs.length === 0, errs.join(' | '));
+    check('House scale has no illustrative race markers', (await p.locator('.ns .pin').count()) === 0);
+    check('no rehearsal controls', (await p.locator('#mode-btn, #demo-bar, .simtag').count()) === 0);
     await ctx.close();
   }
-  // Responsive navigation and race graphics in an offline, deterministic rehearsal.
+  // Responsive navigation and layout with the feed blocked (deterministic, no network).
   for (const width of [375, 1400]) {
-    const p = await b.newPage({ viewport: { width, height: 850 } });
+    const ctx = await b.newContext({ viewport: { width, height: 850 } });
+    await ctx.route('**/civicapi.org/**', (r) => r.abort());
+    const p = await ctx.newPage();
     const errors = [];
     p.on('pageerror', (e) => errors.push(e.message));
-    await p.goto(`${BASE}/?demo#/`);
+    await p.goto(`${BASE}/#/`);
     const mobile = width < 720;
     check(`${width}px: Overview map visible`, await p.locator('.maps').isVisible());
     check(`${width}px: correct navigation visible`, await p.locator(mobile ? '.mobile-tabs' : '.desktop-tabs').isVisible());
     if (mobile) {
       await p.locator('.mobile-tabs').getByRole('link', { name: 'House', exact: true }).click();
       await p.locator('.mobile-subnav').getByRole('link', { name: 'Early House' }).click();
-      await p.locator('.early-race > summary').first().click();
-      check('mobile: early margin graphic visible and race details open', await p.locator('.early-race[open] .early-track').first().isVisible());
+      check('mobile: Early House list visible', await shows(p.locator('.early-race')));
     } else {
       await p.locator('.desktop-tabs').getByRole('link', { name: 'First House races' }).click();
-      check('desktop: detailed Early House chart visible', await p.locator('.sg-grid').isVisible());
+      check('desktop: detailed Early House chart visible', await shows(p.locator('.sg-grid')));
     }
-    await p.goto(`${BASE}/?demo#/states/GA`);
+    await p.goto(`${BASE}/#/states/GA`);
     const picker = p.locator('[data-state-jump]');
-    await picker.evaluate((select) => { select.dataset.refreshProbe = 'original'; });
-    await p.locator('.state-page').evaluate((results) => { results.dataset.refreshProbe = 'original'; });
-    await p.evaluate(async () => {
-      (await import(new URL('js/api.js', document.baseURI).href)).data.sim.tick();
-    });
-    await p.waitForFunction(() => !document.querySelector('.state-page')?.dataset.refreshProbe);
-    check(`${width}px: updates replace results and preserve the state picker`, await picker.getAttribute('data-refresh-probe') === 'original');
+    await p.locator('#ns-wrap, .state-page').first().waitFor();
     await picker.selectOption('TX');
     await p.waitForURL('**/#/states/TX');
     await p.waitForSelector('.state-h h2:text-is("Texas")');
     check(`${width}px: no JS errors`, errors.length === 0, errors.join(' | '));
-    await p.close();
+    await ctx.close();
   }
   await b.close();
   console.log(results.join('\n'));

@@ -3,7 +3,7 @@ import { esc, fmtMargin, marginClass, fmtPct, fmtInt, clamp, hhmm, fmtNightTime 
 import { statewide, house, TIER_KEYS } from './model.js';
 import { STATES, TIERS } from './data/guide.js';
 import { data, nowNight } from './api.js';
-import { raceStatus, simTag } from './status.js';
+import { raceStatus } from './status.js';
 
 export const TIER_LABEL = Object.fromEntries(TIERS.map((t) => [t.key, t.label]));
 
@@ -18,16 +18,15 @@ export function tierChip(tier, { small = false } = {}) {
 /** Status pill for a race read, using the site-wide status vocabulary (text, not just color). */
 export function statusPill(res, { dLabel = 'D', closeAt = null, dName, rName, compact = false, covered = true } = {}) {
   const st = raceStatus(res, { close: closeAt, covered });
-  const sim = simTag();
   if (st.key === 'called') {
     const side = res.called;
     const who = side === 'd' ? dLabel : side === 'r' ? 'R' : 'Other';
     const name = side === 'd' ? dName : side === 'r' ? rName : '';
-    return `<span class="pill pill-call-${side === 'o' ? 'o' : side}">✓ ${esc(compact ? `${who} called` : name ? `Called: ${name}` : `Called: ${who}`)}</span>${sim}`;
+    return `<span class="pill pill-call-${side === 'o' ? 'o' : side}">✓ ${esc(compact ? `${who} called` : name ? `Called: ${name}` : `Called: ${who}`)}</span>`;
   }
-  if (st.key === 'leading') return `<span class="pill pill-count">${compact ? '' : 'Counting · '}${esc(st.text)}</span>${sim}`;
-  if (st.key === 'tied') return `<span class="pill pill-count">${esc(st.text)}</span>${sim}`;
-  return `<span class="pill pill-${st.key}">${esc(st.text)}</span>${sim}`;
+  if (st.key === 'leading') return `<span class="pill pill-count">${compact ? '' : 'Counting · '}${esc(st.text)}</span>`;
+  if (st.key === 'tied') return `<span class="pill pill-count">${esc(st.text)}</span>`;
+  return `<span class="pill pill-${st.key}">${esc(st.text)}</span>`;
 }
 
 /** Horizontal two-candidate bar. */

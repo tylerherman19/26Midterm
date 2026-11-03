@@ -5,7 +5,7 @@ import { STATES, SENATE, STATE_NAMES } from './data/guide.js';
 import { readRace, readSenate, raceById } from './model.js';
 import { esc, fmtMargin, fmtNightTime, hhmm } from './util.js';
 import { ui } from './state.js';
-import { raceStatus, simTag } from './status.js';
+import { raceStatus } from './status.js';
 
 // Small northeastern states get a labeled square in a column off the coast.
 const CALLOUTS = ['VT', 'NH', 'MA', 'RI', 'CT', 'NJ', 'DE', 'MD'];
@@ -87,7 +87,7 @@ function detail(office) {
   else status = raceStatus(r, { close: STATES[st]?.close || null, covered: true }).text;
   return `<div class="map-detail">
     <div><b>${esc(name)} ${off}</b><span class="muted">${esc(dn)} (${s.dLabel}) vs. ${esc(rn)} (R)</span></div>
-    <div>${status}${simTag()}${s.f !== undefined ? `<span class="muted"> · pre-election forecast ${fmtMargin(s.f, { dLabel: s.dLabel })} (DDHQ)</span>` : ''}</div>
+    <div>${status}${s.f !== undefined ? `<span class="muted"> · pre-election forecast ${fmtMargin(s.f, { dLabel: s.dLabel })} (DDHQ)</span>` : ''}</div>
     ${href ? `<a class="more" href="${href}">County benchmarks</a>` : ''}
   </div>`;
 }

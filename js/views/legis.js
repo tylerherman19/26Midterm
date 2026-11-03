@@ -4,7 +4,6 @@ import { WI_LEG, LEGISLATURES } from '../data/guide.js';
 import { marginTag } from '../ui.js';
 import { ui, openAttr } from '../state.js';
 import { feedHealth } from '../api.js';
-import { simTag } from '../status.js';
 
 const RATING_CLS = { 'Safe D': 'safeD', 'Lean D': 'leanD', Tossup: 'toss', 'Lean R': 'leanR', 'Safe R': 'safeR' };
 const RATING_SRC = 'Ratings: John Johnson, Marquette Law School Lubar Center, published July 20, 2026, updated Oct. 27, 2026.';
@@ -64,7 +63,7 @@ function seatDetail() {
   const w = [...WI_LEG.senate.watch, ...WI_LEG.assembly.watch].find((x) => x.d === k);
   const r = wiDistrict(k).res;
   const ord = WI_LEG.senate.order.find(([n]) => `SD-${String(n).padStart(2, '0')}` === k);
-  return `<div class="map-detail"><div><b>${k}${w ? ` · ${esc(w.area)}` : ''}</b><span class="muted">${w ? `${esc(w.dem)} (D) vs. ${esc(w.rep)} (R) · ${w.rating}, ${w.held}-held` : ord ? `2024 margin ${ord[1]} · ${ord[2].replace('safe', 'Safe ').replace('lean', 'Lean ')}` : ''}</span></div><div>${esc(resText(r))}${simTag()}</div></div>`;
+  return `<div class="map-detail"><div><b>${k}${w ? ` · ${esc(w.area)}` : ''}</b><span class="muted">${w ? `${esc(w.dem)} (D) vs. ${esc(w.rep)} (R) · ${w.rating}, ${w.held}-held` : ord ? `2024 margin ${ord[1]} · ${ord[2].replace('safe', 'Safe ').replace('lean', 'Lean ')}` : ''}</span></div><div>${esc(resText(r))}</div></div>`;
 }
 
 function seatsTable(list, { asm = false } = {}) {

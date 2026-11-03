@@ -37,5 +37,3 @@ export function raceStatus(res, { close = null, covered = true } = {}) {
   return { key: 'novotes', text: 'No votes reported' };
 }
 
-export const isSim = () => data.mode === 'demo';
-export const simTag = () => (isSim() ? '<span class="simtag" title="Rehearsal: simulated returns">SIM</span>' : '');

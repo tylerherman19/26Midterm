@@ -47,7 +47,6 @@ export function render() {
         <li><b>Forecast:</b> DDHQ's pre-election projection of 230 Democratic seats (${FORECAST_SOURCE.date}).</li>
         <li><b>Scenario engine:</b> DDHQ margins for the ${CLOSE_84.length} seats within 8 points (guide p. 29). Seat 218 is OH-09, the 15th seat on that list, which implies ${SAFE_D} seats safer than D+8 and ${SAFE_R} safer than R+8. A shift is added to every margin and seats above zero are counted (even seats count as not won). This reproduces the guide's printed curve exactly: R+6 → 213, R+4 → 219, R+2 → 224, no shift → 230, D+2 → 236, D+4 → 244. It is limited to ±8 points, and margins are whole numbers, so results near thresholds are approximate.</li>
         <li><b>Swing so far</b> uses only districts with a DDHQ margin that are called or ${SWING_MIN.reporting}%+ reported. Partly counted districts often lean toward whichever ballots were counted first. It takes the median of (live margin minus DDHQ) and runs it through the scenario engine, with a range from the middle half of districts. It's withheld until ${SWING_MIN.districts} districts in ${SWING_MIN.states} states qualify, because early districts are geographically clustered. It's a scenario, not a projection.</li>
-        <li><b>Race markers</b> are the guide's editorial illustrations (p. 4) of what a result would be consistent with. One district doesn't determine the national total. Each marker also shows a mechanical uniform-swing reading, which can differ from the guide's illustration.</li>
       </ul>
     </section>
 
@@ -70,8 +69,5 @@ export function render() {
       </tbody></table></div>
     </section>
 
-    <section class="card wide"><h3>Rehearsal mode</h3>
-      <p>Rehearsal generates fake returns in the same shape as civicAPI's: a national polling miss, state count-order patterns, county results, calls and an optional feed outage. Everything simulated is labeled SIM or SIMULATED. It tests this site's logic and display, not civicAPI's coverage. Live coverage was checked separately: every tracked House, Senate and governor race in the guide matched a civicAPI race with the same candidates.</p>
-    </section>
   </div>`;
 }

@@ -3,7 +3,7 @@
 import { data, nowNight } from './api.js';
 import { RACE_IDS } from './data/raceIds.js';
 import {
-  STATES, SENATE, SENATE_TIER_BARS, HOUSE, HOUSE_TIER_SEATS, HOUSE_WATCH, EARLY_HOUSE, OPEN_SEAT_HOLDER, HOUSE_SIGNALS,
+  STATES, SENATE, SENATE_TIER_BARS, HOUSE, HOUSE_TIER_SEATS, HOUSE_WATCH, EARLY_HOUSE, OPEN_SEAT_HOLDER,
   RED_RIPTIDE_TESTS, WI_LEG, TEXAS,
 } from './data/guide.js';
 import { norm, surname, hhmm } from './util.js';
@@ -324,27 +324,6 @@ export function nightMiss() {
 }
 
 // ---------- House "how big is the night" race examples ----------
-export function houseSignals() {
-  return HOUSE_SIGNALS.map((s) => {
-    const rs = s.races.map((d) => house(d));
-    const wonD = rs.filter((h) => h.res?.called === 'd').length;
-    const leadD = rs.filter((h) => !h.res?.called && h.res?.hasVotes && h.res.leader === 'd').length;
-    const lostD = rs.filter((h) => h.res?.called === 'r').length;
-    let state = 'waiting';
-    if (s.mode === 'all') {
-      if (wonD === rs.length) state = 'hit';
-      else if (lostD > 0) state = 'miss';
-      else if (wonD + leadD === rs.length) state = 'leaning';
-      else if (rs.some((h) => h.res?.hasVotes)) state = 'trailing';
-    } else {
-      if (wonD > 0) state = 'hit';
-      else if (lostD === rs.length) state = 'miss';
-      else if (leadD > 0) state = 'leaning';
-      else if (rs.some((h) => h.res?.hasVotes)) state = 'trailing';
-    }
-    return { ...s, rs, state };
-  });
-}
 export function riptideTests() {
   return RED_RIPTIDE_TESTS.map((t) => {
     const rs = t.races.map((d) => house(d));
