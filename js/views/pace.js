@@ -1,3 +1,4 @@
+import { ui } from '../state.js';
 import { esc, hhmm } from '../util.js';
 import { nowNight } from '../api.js';
 import { stateReporting } from '../model.js';
@@ -19,11 +20,19 @@ function expectedNow(hours, t) {
 export function render() {
   const t = nowNight();
   const col = Math.floor(t / 60) - 19; // which hour column is "now"
+  const active = PACE.find(([st]) => st === ui.paceState) || PACE.find(([, , hours]) => hours);
   return `<div class="grid pace-page">
     <section class="card wide">
       <div class="card-h"><h3>How fast each state counted in 2024</h3><span class="muted">guide p. 21 · share of the final 2024 count by hour (CT)</span></div>
       <p class="small">The guide doesn't say which race or feed these figures come from. <b>Tonight</b> is civicAPI's "% reporting" for the state's main race. That is a different measure (it may be precincts or estimated vote), so compare the two only loosely.</p>
-      <div class="pace-wrap"><table class="pace-t">
+      <div class="mobile-only">
+        <label>State <select data-ui="paceState">${PACE.map(([st, name]) => `<option value="${st}" ${st === active[0] ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label>
+        ${active[2] ? `<svg class="pace-mobile-chart" viewBox="0 0 300 110" role="img" aria-label="${esc(active[1])} 2024 counting pace: ${active[2].map((v, i) => `${HOURS[i]} ${v}%`).join(', ')}">
+          <path d="M10 10 V100 H290" fill="none" stroke="currentColor"/>
+          <polyline points="${active[2].map((v, i) => `${10 + i * 46},${100 - v * 0.9}`).join(' ')}" fill="none" stroke="currentColor" stroke-width="3"/>
+        </svg><p>7 PM → 1 AM CT · 90% by ${esc(active[4])}</p>` : '<p>No hourly 2024 data for this state.</p>'}
+      </div>
+      <div class="pace-wrap pace-desktop"><table class="pace-t">
         <thead><tr><th>State</th>${HOURS.map((h, i) => `<th class="n ${i === col ? 'nowcol' : ''}">${h}</th>`).join('')}<th class="n">Wed 8 PM</th><th class="n">Fri 8 AM</th><th class="n">Nov 15</th><th class="n" title="First hour the unrounded 2024 share reached 90% (guide)">90% by</th><th class="n live-h" title="civicAPI percent_reporting, not share of final vote">Tonight (civicAPI)</th><th class="n" title="Tonight's % reporting minus the 2024 share at this time; directional only">vs 2024 now</th></tr></thead>
         <tbody>${PACE.map(([st, name, hours, later, by]) => {
           const rep = stateReporting(st);

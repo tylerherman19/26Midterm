@@ -3,7 +3,7 @@ import { house, riptideTests, houseSeatBreaks, tierFromBreaks, HOUSE_META } from
 import { EARLY_HOUSE, HOUSE_TIER_SEATS, HOUSE_WATCH, CLOSEST_17, REDRAWN, STATE_NAMES } from '../data/guide.js';
 import { FORECAST_SOURCE } from '../data/houseForecast.js';
 import { marginTag, tierChip, tierBar, statusPill } from '../ui.js';
-import { ui } from '../state.js';
+import { ui, openAttr } from '../state.js';
 import { nightCenterpiece } from './night.js';
 
 const byClose = (list) => {
@@ -108,5 +108,8 @@ function watchList() {
 
 export function render(params) {
   ui.focus = params.d || null;
-  return `<div class="grid house-page">${nightCenterpiece()}${firstRacesSummary()}${riptide()}${tierSeats()}${watchList()}</div>`;
+  return `<div class="grid house-page">${nightCenterpiece()}${watchList()}
+    <details class="card wide" ${openAttr('house-analysis')}><summary>Early signals and seat thresholds</summary>
+      <div class="grid">${firstRacesSummary()}${riptide()}${tierSeats()}</div>
+    </details></div>`;
 }

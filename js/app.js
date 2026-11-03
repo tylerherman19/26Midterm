@@ -1,7 +1,7 @@
 import { data, onUpdate, startLive, startDemo, setMode, refreshNow, nowNight, setHouseFallbackList, feedHealth, FEEDS } from './api.js';
+import { STATES } from './data/guide.js';
 import { fmtClock, fmtDayLabel, fmtCountdown, ago, esc, store, fmtNightTime } from './util.js';
 import { senateTally, houseTally, nightMiss, HOUSE_META } from './model.js';
-import { updateNightParts } from './views/night.js';
 import * as method from './views/method.js';
 import { tierChip } from './ui.js';
 import { diffFeed, resetFeed, onToast } from './feed.js';
@@ -24,6 +24,9 @@ const ROUTES = {
   counties: { title: 'Counties', view: counties },
   legislatures: { title: 'Legislatures', view: legis },
   pace: { title: 'Count pace', view: pace },
+  more: { title: 'More', view: { render: () => `<div class="card more-links">
+    <h2>More</h2><a href="#/tonight">Election night timing →</a><a href="#/pace">2024 count pace →</a><a href="#/method">Methodology and sources →</a>
+  </div>` } },
   method: { title: 'Methodology', view: method },
 };
 
@@ -39,7 +42,14 @@ function parseHash() {
 }
 
 function renderNav(route) {
-  $('#tabs').innerHTML = Object.entries(ROUTES).map(([k, r]) => `<a href="#/${k}" class="${k === route ? 'on' : ''}">${r.title}</a>`).join('');
+  const link = (path, title, active) => `<a href="#/${path}"${active ? ' class="on" aria-current="page"' : ''}>${title}</a>`;
+  const house = ['house', 'signals'].includes(route);
+  const states = ['legislatures', 'counties'].includes(route);
+  const more = ['more', 'tonight', 'pace', 'method'].includes(route);
+  $('#tabs').innerHTML = `<div class="desktop-tabs">${Object.entries(ROUTES)
+    .filter(([path]) => path !== 'more').map(([path, r]) => link(path, r.title, path === route)).join('')}</div>
+    <div class="mobile-tabs">${link('', 'Overview', !route)}${link('house', 'House', house)}
+      ${link('states', 'Senate &amp; Gov', route === 'states')}${link('legislatures', 'States', states)}${link('more', 'More', more)}</div>`;
 }
 
 function renderTicker() {
@@ -64,7 +74,12 @@ function render() {
   const view = $('#view');
   const y = window.scrollY;
   try {
-    view.innerHTML = r.view.render(params);
+    const group = ['house', 'signals'].includes(route) ? [['signals', 'Early House'], ['house', 'All House']]
+      : ['legislatures', 'counties'].includes(route) ? [['legislatures', 'Legislatures'], ['counties', 'Counties']]
+      : ['tonight', 'pace'].includes(route) ? [['tonight', 'Hour by hour'], ['pace', '2024 count pace']] : [];
+    const subnav = group.length ? `<nav class="mobile-subnav" aria-label="Related views">${group.map(([path, title]) =>
+      `<a href="#/${path}"${path === route ? ' aria-current="page"' : ''}>${title}</a>`).join('')}</nav>` : '';
+    view.innerHTML = subnav + r.view.render(params);
   } catch (e) {
     console.error(e);
     view.innerHTML = `<div class="card"><h3>Something went wrong rendering this view</h3><pre>${esc(e.stack || e)}</pre></div>`;
@@ -72,8 +87,10 @@ function render() {
   document.title = `${r.title} · Election Night 2026`;
   if (lastRoute !== location.hash) {
     lastRoute = location.hash;
-    if (params.d) document.getElementById(`h-${params.d}`)?.scrollIntoView({ block: 'center' }) || document.getElementById(`hw-${params.d}`)?.scrollIntoView({ block: 'center' });
-    else if (route === 'tonight') document.getElementById('tl-now')?.scrollIntoView({ block: 'start' });
+    if (params.d) {
+      const ids = [`mobile-h-${params.d}`, `h-${params.d}`, `hw-${params.d}`];
+      ids.map((id) => document.getElementById(id)).find((el) => el?.getClientRects().length)?.scrollIntoView({ block: 'center' });
+    }
     else window.scrollTo(0, 0);
   } else {
     window.scrollTo(0, y);
@@ -217,8 +234,6 @@ function init() {
     if (ms) { ui.mapSel = ui.mapSel === ms.dataset.mapSt ? null : ms.dataset.mapSt; render(); }
     const sg = e.target.closest('[data-sg-sort]');
     if (sg) { ui.sgSort = sg.dataset.sgSort; render(); }
-    const ns = e.target.closest('[data-night-shift]');
-    if (ns) { ui.nightShift = Number(ns.dataset.nightShift); updateNightParts(); const sl = document.querySelector('[data-night-slider]'); if (sl) sl.value = ui.nightShift; }
     const hb = e.target.closest('[data-health]');
     if (hb) { ui.healthOpen = !ui.healthOpen; renderStatus(); }
     else if (ui.healthOpen && !e.target.closest('.health-pop')) { ui.healthOpen = false; renderStatus(); }
@@ -227,13 +242,21 @@ function init() {
   });
   document.addEventListener('input', (e) => {
     const t = e.target;
-    if (t.matches('[data-night-slider]')) { ui.nightShift = Number(t.value); updateNightParts(); }
     if (t.matches('[data-house-query]')) { ui.houseQuery = t.value; renderKeepFocus(t); }
   });
   document.addEventListener('change', (e) => {
     const t = e.target;
     if (t.matches('[data-house-state]')) { ui.houseState = t.value; render(); }
     if (t.matches('[data-ui]')) { setUi(t.dataset.ui, t.value); render(); }
+    if (t.matches('[data-state-office]')) {
+      ui.stateOffice = t.value;
+      const { params } = parseHash();
+      const current = (params.st || 'GA').toUpperCase();
+      const next = !t.value || STATES[current]?.races.some((r) => r.office === t.value)
+        ? current : Object.keys(STATES).find((st) => STATES[st].races.some((r) => r.office === t.value));
+      if (next !== current) location.hash = `#/states/${next}`;
+      else render();
+    }
     if (t.matches('[data-state-jump]') && t.value) location.hash = `#/states/${t.value}`;
   });
   // remember expanded <details data-key> across live re-renders

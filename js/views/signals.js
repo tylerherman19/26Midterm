@@ -6,7 +6,7 @@ import { data } from '../api.js';
 import { houseSwing, SWING_MIN } from '../model.js';
 import { FORECAST_SOURCE } from '../data/houseForecast.js';
 import { HOUSE_META } from '../model.js';
-import { ui } from '../state.js';
+import { ui, openAttr } from '../state.js';
 
 const MIN = -26, MAX = 14; // cells are 4 pts wide, centered on R+24 … D+12
 const P = (v) => Math.max(0, Math.min(100, ((v - MIN) / (MAX - MIN)) * 100));
@@ -83,6 +83,28 @@ function status(x) {
   return s;
 }
 
+function mobileRace(x) {
+  const values = [0, x.ddhq, x.live ?? x.ddhq];
+  const lo = Math.min(...values) - 4, hi = Math.max(...values) + 4;
+  const at = (v) => 100 * (v - lo) / (hi - lo);
+  const delta = x.miss === null ? '' : Math.abs(x.miss) < 0.05 ? 'Matches DDHQ'
+    : `${Math.abs(x.miss).toFixed(1)} points toward ${x.miss > 0 ? 'Democrats' : 'Republicans'} vs DDHQ`;
+  return `<details class="early-race" id="mobile-h-${x.d}" ${openAttr('early-' + x.d)}>
+    <summary><div class="early-title"><b>${x.d}</b><b>${x.live === null ? '—' : fmtMargin(x.live, { digits: 1 })}</b></div>
+      <div class="early-track" aria-hidden="true">
+        <i class="even" style="left:${at(0)}%"></i><i class="forecast" style="left:${at(x.ddhq)}%"></i>
+        ${x.live === null ? '' : `<i class="live" style="left:${at(x.live)}%"></i>`}
+      </div>
+      <div class="early-labels"><span>DDHQ ${lbl(x.ddhq)}</span><span>Even line</span></div>
+      <div>${x.r?.called ? status(x) : x.live !== null ? `Uncalled · ${x.r.rep}% reporting` : `Polls close ${fmtNightTime(hhmm(x.close))} CT`}</div>
+      ${delta ? `<small>${delta}</small>` : ''}
+    </summary>
+    <p>${esc(x.dn)} (D) vs. ${esc(x.rn)} (R) · 2024 president ${lbl(x.m24)}</p>
+    ${x.hist.length > 1 && x.live !== null ? `<p>First reported ${fmtMargin(x.hist[0][2], { digits: 1 })} → now ${fmtMargin(x.live, { digits: 1 })}</p>` : ''}
+    ${x.lateR ? '<p>Late votes leaned Republican here in 2022.</p>' : ''}
+  </details>`;
+}
+
 export function signalsChart({ compact = false } = {}) {
   let list = rows();
   const sort = ui.sgSort || 'guide';
@@ -93,7 +115,14 @@ export function signalsChart({ compact = false } = {}) {
   if (sort === 'reporting') list = [...list].sort((a, b) => noRes(a) - noRes(b) || (b.r?.rep ?? 0) - (a.r?.rep ?? 0) || a.i - b.i);
   const sorts = [['guide', 'Guide order'], ['close', 'Poll close'], ['miss', 'Best for D vs DDHQ'], ['reporting', 'Most counted']];
   return `<section class="card wide sg">
-    <div class="sg-title"><h2>Early signals: the first House races</h2>
+    <div class="early-mobile">
+      <div class="early-title"><h2>Early House</h2><select data-ui="sgSort" aria-label="Sort early House races">${sorts.map(([k, label]) =>
+        `<option value="${k}" ${sort === k ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
+      <p>${list.filter((x) => x.live !== null).length} of ${list.length} races reporting</p>
+      ${list.map(mobileRace).join('')}
+      <details ${openAttr('early-guide')}><summary>How to read this</summary><p>The hollow dot is the DDHQ forecast. The solid dot is the latest margin. The vertical line marks an even race. Early districts are geographically clustered. Partial returns can change substantially, and civicAPI reporting percentages may measure different things across states.</p></details>
+    </div>
+    <div class="early-desktop"><div class="sg-title"><h2>Early signals: the first House races</h2>
       <div class="seg-ctl" role="group" aria-label="Sort rows"><span class="seg-lbl">Sort</span>${sorts.map(([k, l]) => `<button data-sg-sort="${k}" class="${sort === k ? 'on' : ''}" aria-pressed="${sort === k}">${l}</button>`).join('')}</div></div>
     <p class="dek">Are the first-reporting House races coming in better or worse for Democrats than the pre-election forecast?</p>
     <p class="small muted">These ${list.length} districts close early (5 to 6:30 PM CT) and sit mostly in Florida, Virginia, the Carolinas, Ohio, Kentucky and Indiana, so they are not a national sample. The ±3-point bands are the guide's editorial threshold, not a statistical margin of error. Forecast: DDHQ, ${FORECAST_SOURCE.date}.</p>
@@ -123,6 +152,7 @@ export function signalsChart({ compact = false } = {}) {
       <div class="sg-row sg-foot"><span></span><span></span><span class="sg-axis">${TICKS.map((t) => `<em style="left:${P(t)}%">${t === 0 ? 'Even' : lbl(t)}</em>`).join('')}</span></div>
     </div></div>
     ${compact ? '' : `<p class="muted small">The live dot is colored by the band it's in (red = worse by 3+, gray = within 3, blue = better by 3+). Faint dots trace its path as the count came in. A partly counted district can move a lot: "late votes leaned R in 2022" is a historical observation from that year, not a prediction. civicAPI's "% in" is not documented as share of expected vote and may not be comparable across states.</p>`}
+    </div>
   </section>`;
 }
 

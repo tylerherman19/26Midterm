@@ -114,7 +114,7 @@ i { font-style: normal; } /* <i> is only used for drawn shapes */
 .card-h .muted { font-size: 12px; }
 .overview .now { grid-column: span 4; }
 .overview .control { grid-column: span 4; }
-.overview .maps { grid-column: span 7; }
+.overview .maps { grid-column: 1 / -1; }
 .overview .miss { grid-column: span 5; }
 .overview .tells { grid-column: span 7; }
 .overview .feed-card { grid-column: span 5; }
@@ -856,33 +856,19 @@ body.is-stale .ticker::before { content: 'Data may be out of date'; align-self: 
 .ns-marks .mk b { font-size: 12.5px; font-weight: 800; }
 .ns-marks .mk small { font-size: 11px; color: var(--muted); }
 .mk.fc > i { border-left: 2px dashed var(--ink); } .mk.fc b { color: var(--ink); }
-.mk.scen > i { background: var(--ink-2); } .mk.scen > i::before { content: ''; position: absolute; top: -6px; left: -5px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); background: var(--card); }
 .mk.swing > i { background: var(--gold); width: 4px; } .mk.swing b { color: color-mix(in srgb, var(--gold) 60%, var(--ink)); }
 .mk.called > i { background: var(--d); } .mk.called b { color: var(--d); }
 .ns-key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); padding: 8px 0 4px; border-top: 1px solid var(--rule-2); }
 .ns-key span { display: inline-flex; align-items: center; gap: 6px; }
 .k { display: inline-block; flex: none; }
 .k.fc { width: 0; height: 14px; border-left: 2px dashed var(--ink); }
-.k.scen { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); }
 .k.swing { width: 14px; height: 10px; background: color-mix(in srgb, var(--gold) 55%, transparent); box-shadow: 0 0 0 1.5px var(--gold); border-radius: 2px; }
 .k.called { width: 3px; height: 14px; background: var(--d); }
 .k.pin { width: 18px; height: 18px; font-size: 10px; }
 
-.night-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 22px; margin-top: 12px; }
-.explorer { background: var(--wash); border-radius: 12px; padding: 14px 16px; }
-.ex-h { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
-.ex-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.ex-presets button { border: 1px solid var(--rule); background: var(--card); color: var(--ink); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
-.ex-presets button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.ex-slider input { width: 100%; accent-color: var(--ink); }
-.ex-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
-.ex-out { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
-.ex-out > div { display: flex; flex-direction: column; }
-.ex-out b { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
-.ex-flips { grid-column: 1 / -1; font-size: 12.5px; gap: 2px; }
 .tier-txt { font-weight: 800; }
 .tier-txt.t-riptide { color: var(--riptide); } .tier-txt.t-tide { color: color-mix(in srgb, var(--tide) 45%, var(--ink)); } .tier-txt.t-wave { color: var(--wave); } .tier-txt.t-tsunami { color: var(--tsunami); }
-.examples h4, .explorer h4 { font-size: 16px; }
+.examples h4 { font-size: 16px; }
 .ex-race { border: 1px solid var(--rule); border-radius: 10px; margin: 8px 0; background: var(--card); }
 .ex-race > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 26px auto 1fr; grid-template-areas: 'pin lbl state' 'pin title guide'; gap: 0 8px; padding: 9px 12px; align-items: center; }
 .ex-race > summary::-webkit-details-marker { display: none; }
@@ -925,7 +911,7 @@ details.wl-row[open] > summary { background: var(--wash); }
 .defs dt { font-weight: 700; } .defs dd { margin: 0; color: var(--ink-2); }
 .method code { font-size: 12px; background: var(--wash); padding: 0 4px; border-radius: 3px; }
 
-@media (max-width: 900px) { .night-grid, .m-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .m-grid { grid-template-columns: 1fr; } }
 @media (max-width: 720px) {
   .night { padding: 14px; }
   .night-h h2 { font-size: 24px; }
@@ -939,7 +925,6 @@ details.wl-row[open] > summary { background: var(--wash); }
   .ns-marks .mk > span { top: calc(var(--row) * 22px); }
   .ns-marks .mk > i { height: calc(26px + var(--row) * 22px); }
   .ns-ticks span:nth-child(2), .ns-ticks span:nth-child(6) { display: none; }
-  .ex-out b { font-size: 28px; }
   .rx dl { grid-template-columns: 92px 1fr; }
   details.wl-row > summary { grid-template-columns: 44px 1fr 36px 70px 34px; font-size: 11.5px; }
   .wl-detail { padding-left: 8px; }
@@ -996,4 +981,48 @@ details.wl-row[open] > summary { background: var(--wash); }
 @media (max-width: 720px) {
   .early-c th:nth-child(2), .early-c td:nth-child(2), .early-c th:nth-child(3), .early-c td:nth-child(3), .early-c th:nth-child(5), .early-c td:nth-child(5), .early-c th:nth-child(9), .early-c td:nth-child(9) { display: none; }
   .early-c tr.grp td { font-size: 11px; }
+}
+
+.desktop-tabs { display: flex; gap: 2px; }
+.mobile-tabs, .mobile-subnav, .early-mobile, .mobile-only { display: none; }
+.more-links { display: grid; gap: 12px; }
+.card > summary { cursor: pointer; font-weight: 700; }
+.card > details > summary { cursor: pointer; }
+.tl { display: block; }
+.tl > details > summary { cursor: pointer; }
+.tl > details[open] > .tl-body { margin-top: 10px; }
+
+@media (max-width: 720px) {
+  .desktop-tabs, .early-desktop, .county-desktop, .pace-desktop,
+  .state-nav, .state-page.selected-senate .office-governor,
+  .state-page.selected-governor .office-senate { display: none; }
+  .mobile-only, .early-mobile { display: block; }
+  .mobile-tabs, .mobile-subnav { display: flex; gap: 4px; }
+  .mobile-tabs { justify-content: space-between; width: 100%; }
+  .tabs .mobile-tabs a { padding: 10px 3px; font-size: 12px; }
+  .mobile-subnav { margin-bottom: 12px; }
+  .mobile-subnav a { padding: 8px 12px; border-radius: 6px; }
+  .mobile-subnav a[aria-current] { background: var(--wash); font-weight: 700; }
+  .overview-feed .fe:nth-child(n + 4) { display: none; }
+  .early-title, .early-labels, .county-values { display: flex; justify-content: space-between; gap: 8px; }
+  .early-title { align-items: center; }
+  .early-title select { max-width: 50%; }
+  .early-labels { color: var(--muted); font-size: 12px; }
+  .early-race { border-top: 1px solid var(--rule); }
+  .early-race > summary { cursor: pointer; padding: 12px 0; list-style: none; }
+  .early-race > summary::-webkit-details-marker { display: none; }
+  .early-race > summary::after { content: '＋'; color: var(--muted); display: block; text-align: right; margin-top: -1em; }
+  .early-race[open] > summary::after { content: '−'; }
+  .early-track { position: relative; height: 5px; margin: 12px 6px 8px; border-radius: 4px; background: var(--rule); }
+  .early-track i { position: absolute; top: 50%; transform: translate(-50%, -50%); }
+  .early-track .even { width: 2px; height: 16px; background: var(--muted); }
+  .early-track .forecast, .early-track .live { width: 11px; height: 11px; border: 2px solid var(--ink); border-radius: 50%; background: var(--card); }
+  .early-track .live { background: var(--ink); }
+  .early-track .forecast:has(+ .live) { top: -3px; }
+  .county-values { margin-top: 6px; font-size: 12px; padding-right: 14px; }
+  .county-values b { display: block; }
+  .pace-mobile-chart { display: block; max-width: 100%; width: 360px; margin-top: 12px; }
+  .state-pick .mobile-only { display: inline-block; margin-right: 8px; }
+  .ns-bar .band { overflow: hidden; }
+  .ns-bar .band b { white-space: normal; }
 }
