@@ -9,7 +9,7 @@ export const ui = {
   benchOffice: {},
   focus: null,
   houseFilter: 'all',
-  sgSort: 'guide',
+  sgSort: 'close',
   mapOffice: 'senate',
   mapSel: null,
 };

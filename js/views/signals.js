@@ -108,14 +108,14 @@ function mobileRace(x, max) {
 
 export function signalsChart({ compact = false } = {}) {
   let list = rows();
-  const sort = ui.sgSort || 'guide';
+  const sort = ui.sgSort || 'close';
   if (sort === 'close') list = [...list].sort((a, b) => hhmm(a.close) - hhmm(b.close) || a.i - b.i);
   // Races with no results always sort after races with results, in guide order.
   const noRes = (x) => (x.live === null ? 1 : 0);
   if (sort === 'miss') list = [...list].sort((a, b) => noRes(a) - noRes(b) || (b.miss ?? 0) - (a.miss ?? 0) || a.i - b.i);
   if (sort === 'reporting') list = [...list].sort((a, b) => noRes(a) - noRes(b) || (b.r?.rep ?? 0) - (a.r?.rep ?? 0) || a.i - b.i);
   const mobileMax = Math.max(20, ...list.map((x) => Math.max(Math.abs(x.ddhq), Math.abs(x.live ?? 0))));
-  const sorts = [['guide', 'Guide order'], ['close', 'Poll close'], ['miss', 'Best for D vs DDHQ'], ['reporting', 'Most counted']];
+  const sorts = [['close', 'Poll close'], ['guide', 'Guide order'], ['miss', 'Best for D vs DDHQ'], ['reporting', 'Most counted']];
   return `<section class="card wide sg">
     <div class="early-mobile">
       <div class="early-title"><h2>Early House</h2><select data-ui="sgSort" aria-label="Sort early House races">${sorts.map(([k, label]) =>
