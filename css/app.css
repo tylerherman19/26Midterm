@@ -329,22 +329,17 @@ a.tile:hover { transform: scale(1.08); position: relative; z-index: 2; }
 @keyframes slidein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
 /* ---------- state page ---------- */
-.state-nav { display: flex; gap: 4px; overflow-x: auto; padding: 0 0 12px; scrollbar-width: thin; }
-.sn { flex: none; display: flex; flex-direction: column; align-items: center; min-width: 52px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--rule); background: var(--card); }
-.sn b { font-size: 13px; } .sn small { font-size: 10.5px; color: var(--muted); }
-.sn.on { background: var(--ink); color: var(--paper); border-color: var(--ink); } .sn.on small { color: var(--paper); opacity: 0.8; }
-.sn.has-votes { border-color: var(--gold); } .sn.has-call { box-shadow: inset 0 -3px 0 var(--gold); }
 .state-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 2px solid var(--ink); margin-bottom: 14px; }
 .state-h h2 { font-size: 32px; }
 .close-note { font-weight: 700; font-size: 13px; }
-.race-blocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 22px; }
+.race-blocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 22px; }
 .rb-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
 .rb-h h3 { font-size: 19px; margin-top: 2px; }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 12px 0; }
-.kpis > div { background: var(--wash); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
-.kpis > div > span { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; }
-.kpis b { font-size: 20px; } .kpis b .m { font-size: 20px; }
-.kpis small { color: var(--muted); font-size: 11px; }
+.state-margins { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 10px 0 14px; }
+.state-margins dt { font-size: 12px; color: var(--muted); }
+.state-margins dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; font-size: 19px; font-weight: 700; }
+.state-race-details { margin-top: 12px; padding-top: 9px; border-top: 1px solid var(--rule); }
+.state-race-details summary { cursor: pointer; font-size: 13px; font-weight: 600; }
 .tier-row { margin-top: 6px; }
 .tier-row .lbl { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .tierbar { padding-top: 4px; }
@@ -633,7 +628,7 @@ td.inby { font-size: 12px; white-space: nowrap; }
 
 .sg-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .sg-grid { min-width: 980px; }
-.sg-row { display: grid; grid-template-columns: 74px 168px minmax(380px, 1fr) 46px 46px 50px 50px 70px 150px; gap: 0 10px; align-items: center; min-height: 31px; padding: 1px 6px; }
+.sg-row { display: grid; grid-template-columns: 74px 168px minmax(min(100%, 340px), 1fr) 46px 46px 50px 50px 70px 150px; gap: 0 10px; align-items: center; min-height: 31px; padding: 1px 6px; }
 .sg-row:nth-child(even):not(.sg-head):not(.sg-foot) { background: var(--sg-row); }
 .sg-row.focus { outline: 2px solid var(--gold); outline-offset: -2px; border-radius: 4px; }
 .sg-row.is-called .sg-seat b::after { content: ' ✓'; color: var(--gold); }
@@ -943,12 +938,11 @@ details.wl-row[open] > summary { background: var(--wash); }
   .ex-race .ex-state, .ex-race .ex-guide { justify-self: start; }
   .ts-row { grid-template-columns: 84px 30px 1fr 86px; }
 }
-.state-pick { margin: 0 0 8px; }
+.state-pick { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; }
+.state-pick label { display: grid; gap: 3px; min-width: 0; }
+.state-pick select { max-width: 100%; }
 .close-note small { display: block; font-weight: 500; color: var(--muted); max-width: 420px; text-align: right; }
 .bench-intro { background: var(--wash); border-radius: 8px; padding: 8px 12px; line-height: 1.5; }
-.kpis .fc { background: transparent; box-shadow: inset 0 0 0 1.5px var(--rule); }
-.kpis .est { background: transparent; box-shadow: inset 0 0 0 1.5px dashed var(--rule); border: 1.5px dashed var(--rule); }
-.kpis .lv { background: color-mix(in srgb, var(--gold) 10%, var(--wash)); }
 @media (max-width: 720px) { .close-note small { text-align: left; } }
 .wi-two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
 .wi-strip > button { flex: 1 1 0; min-width: 0; height: 34px; border-radius: 3px; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; position: relative; border: 0; padding: 0; cursor: pointer; font-family: inherit; }
@@ -993,9 +987,7 @@ details.wl-row[open] > summary { background: var(--wash); }
 .tl > details[open] > .tl-body { margin-top: 10px; }
 
 @media (max-width: 720px) {
-  .desktop-tabs, .early-desktop, .county-desktop, .pace-desktop,
-  .state-nav, .state-page.selected-senate .office-governor,
-  .state-page.selected-governor .office-senate { display: none; }
+  .desktop-tabs, .early-desktop, .county-desktop, .pace-desktop { display: none; }
   .mobile-only, .early-mobile { display: block; }
   .mobile-tabs, .mobile-subnav { display: flex; gap: 4px; }
   .mobile-tabs { justify-content: space-between; width: 100%; }
@@ -1036,7 +1028,6 @@ details.wl-row[open] > summary { background: var(--wash); }
   .county-values { margin-top: 6px; font-size: 12px; padding-right: 14px; }
   .county-values b { display: block; }
   .pace-mobile-chart { display: block; max-width: 100%; width: 360px; margin-top: 12px; }
-  .state-pick .mobile-only { display: inline-block; margin-right: 8px; }
   .ns-bar .band { overflow: hidden; }
   .ns-bar .band b { white-space: normal; }
 }
