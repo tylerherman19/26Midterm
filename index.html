@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Election Night 2026</title>
+  <meta name="description" content="Live election-night tracker for the 2026 midterms: Senate, governor, House and Wisconsin legislature races with county benchmarks, tells and count pace. Results from civicAPI." />
+  <meta name="theme-color" content="#faf8f3" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='16' height='32' fill='%232f5fb3'/%3E%3Crect x='16' width='16' height='32' fill='%23c2362b'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://civicapi.org" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-in">
+      <a class="brand" href="#/"><h1>Election Night <span>2026</span></h1><small>Live companion to the Election Night Guide</small></a>
+      <div class="clock-wrap"><b id="clock">—</b><small id="clock-day">CT</small></div>
+      <div class="controls">
+        <div id="status" class="status" aria-live="polite"></div>
+        <button id="refresh-btn" class="btn ghost" title="Refresh now" aria-label="Refresh now">↻</button>
+        <button id="notify-btn" class="btn ghost" title="Browser notifications for calls">Alerts</button>
+        <button id="theme-btn" class="btn ghost">Dark</button>
+        <button id="mode-btn" class="btn">Rehearse the night</button>
+      </div>
+    </div>
+    <div id="demo-bar" class="demo-bar" hidden>
+      <span class="demo-tag">Rehearsal</span>
+      <span class="small">Simulated returns shaped like civicAPI data. Nothing here is real.</span>
+      <button id="sim-play" class="btn sm">Pause</button>
+      <label class="small">Speed <select id="sim-speed"><option value="1">1×</option><option value="30">30×</option><option value="120" selected>120×</option><option value="300">300×</option><option value="900">900×</option></select></label>
+      <input id="sim-t" type="range" min="1010" max="1860" step="1" aria-label="Simulated time" />
+      <b id="sim-label" class="small"></b>
+      <span id="sim-err" class="small muted"></span>
+      <button id="sim-shuffle" class="btn sm ghost">New scenario</button>
+    </div>
+    <div class="ticker-row"><div id="ticker" class="ticker"></div></div>
+    <nav id="tabs" class="tabs" aria-label="Sections"></nav>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <footer class="foot">
+    <p>Live results from <a href="https://civicapi.org" target="_blank" rel="noopener">civicAPI</a> (refreshes every 30–60 seconds). Forecasts, county targets, timing and tells come from the 2026 Election Night Guide (DDHQ forecasts as of Nov. 1). County "to tie" targets assume uniform swing. Win probabilities are approximate readings of the guide's chart. Calls shown are civicAPI's.</p>
+  </footer>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
