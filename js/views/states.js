@@ -153,14 +153,14 @@ function benchIntro(st) {
   return `<p class="small bench-intro">Each target is a scenario benchmark, not a prediction. <b>"To tie"</b> is the county result consistent with an even statewide race. <b>"If forecast"</b> shifts it by DDHQ's statewide margin. For example, ${esc(c[0])}'s tie target is ${fmtMargin(c[3], { dLabel: dl })}; with the ${cur === 'senate' ? 'Senate' : 'governor'} forecast at ${fmtMargin(g.forecast, { dLabel: dl })}, a forecast-consistent result is ${fmtMargin(iff, { dLabel: dl })}. A partly counted county may not look like its final result.${cur !== s.races[0].office ? ' <b>Note:</b> the guide sets these targets on the ' + s.races[0].office + ' race; for governor they are approximate (the guide says they differ by a few points).' : ''}</p>`;
 }
 
-export function render(params) {
+export function render(params, { includePicker = true } = {}) {
   const st = (params.st || 'GA').toUpperCase();
   const s = STATES[st] || STATES.GA;
   const key = STATES[st] ? st : 'GA';
   if (ui.stateOffice && !s.races.some((r) => r.office === ui.stateOffice)) ui.stateOffice = '';
   const visibleRaces = s.races.filter((r) => !ui.stateOffice || r.office === ui.stateOffice);
   const primaryId = statewide(key, visibleRaces[0].office).id;
-  return `${stateNav(key)}
+  return `${includePicker ? stateNav(key) : ''}
   <div class="grid state-page">
     <section class="card wide state-card">
       <div class="state-h"><h2>${esc(s.name)}</h2><span class="close-note">${esc(s.closeNote)}${s.closeDetail ? `<small>${esc(s.closeDetail)} Statewide calls generally wait for the last close.</small>` : ''}</span></div>

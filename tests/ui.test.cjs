@@ -129,6 +129,18 @@ const BASE = process.env.BASE || 'http://localhost:8765';
       await p.locator('.desktop-tabs').getByRole('link', { name: 'First House races' }).click();
       check('desktop: detailed Early House chart visible', await p.locator('.sg-grid').isVisible());
     }
+    await p.goto(`${BASE}/?demo#/states/GA`);
+    const picker = p.locator('[data-state-jump]');
+    await picker.evaluate((select) => { select.dataset.refreshProbe = 'original'; });
+    await p.locator('.state-page').evaluate((results) => { results.dataset.refreshProbe = 'original'; });
+    await p.evaluate(async () => {
+      (await import(new URL('js/api.js', document.baseURI).href)).data.sim.tick();
+    });
+    await p.waitForFunction(() => !document.querySelector('.state-page')?.dataset.refreshProbe);
+    check(`${width}px: updates replace results and preserve the state picker`, await picker.getAttribute('data-refresh-probe') === 'original');
+    await picker.selectOption('TX');
+    await p.waitForURL('**/#/states/TX');
+    await p.waitForSelector('.state-h h2:text-is("Texas")');
     check(`${width}px: no JS errors`, errors.length === 0, errors.join(' | '));
     await p.close();
   }
