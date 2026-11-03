@@ -12,7 +12,7 @@ targets, timing and tells, so you can watch the night unfold race by race.
 | --- | --- |
 | **Overview** | What's closing now and next, Senate/House control bars with tier gauges (Riptide → Tsunami), Senate & governor tile maps, "running vs. the forecast" swing estimate, every statewide race card, auto-checked tells, first House reads, live feed of calls and lead changes |
 | **Senate & Governor** | Per-state deep dive: live two-way result, DDHQ forecast, county benchmark table (2024 → tie target → live, implied statewide margin), the Senate tier bar, count-by-hour vs. 2024, "how the count could look". Texas adds Harris County / Big 5 / rural-share benchmarks |
-| **House** | How big is the night (seat scale + flip signals), early-signal races vs. DDHQ ±3 bands, every seat on its Tide/Wave/Tsunami bar, Red Riptide tests, all 85 watch races with flip flags and filters |
+| **House** | How big is the night (seat scale), early-signal races vs. DDHQ ±3 bands, every seat on its Tide/Wave/Tsunami bar, Red Riptide tests, all 85 watch races with flip flags and filters |
 | **Hour by hour** | The guide's timeline with live chips for every referenced race, auto-scrolls to *now* |
 | **Counties** | The first counties to report vs. "state matches forecast" and "state is tied" targets |
 | **Legislatures** | Wisconsin Senate/Assembly majority math with live seat strips, seats to watch, money; the 18 chambers on page 24 |
@@ -39,12 +39,8 @@ The **Methodology** tab documents every source, date and assumption.
 
 ```sh
 node tests/model.test.mjs                      # calculations: 435-seat reconciliation, ties, third parties, retractions, holdovers, scenario curves, closing times, feed health
-python3 -m http.server 8765 & node tests/ui.test.cjs   # browser: live feed, blocked feed, stale feed, rehearsal scenarios, filters, keyboard, cross-tab consistency
+python3 -m http.server 8765 & node tests/ui.test.cjs   # browser: live feed, blocked feed, stale feed, filters, keyboard, cross-tab consistency
 ```
-
-## Rehearsal mode
-
-Click **Rehearse the night** (or open `?demo`) to run a simulated election night shaped like civicAPI data. Pick a scenario (random miss, near the forecast, Democratic or Republican overperformance, slow reporting, or a simulated feed outage from 8:20 to 9:10 PM), then scrub time and change speed. Everything simulated is labeled SIM. Open `?live` to switch back.
 
 ## Run locally
 

@@ -349,24 +349,6 @@ export const SENATE = {
 // ---------- House ----------
 export const HOUSE = { majority: 218, forecast: 230, dNow: 215 };
 
-// "How big is the night" markers (page 4) — seat level where each flip points
-export const HOUSE_SIGNALS = [
-  // guideSeats = the seat level the guide's p. 4 graphic attaches to each result. These are the guide's editorial
-  // illustrations, not model outputs; one district does not determine the national total.
-  { label: 'VA-2', title: 'Luria (D) vs. Kiggans (R, inc.)', guideSeats: 223, guideLabel: '~223', races: ['VA-02'], mode: 'all',
-    why: 'DDHQ favors Luria by 7, so a Democratic win is the expected result. The guide calls it "the small test": a Kiggans hold would be an early warning sign for Democrats.' },
-  { label: 'KY-6', title: 'Dembo (D) vs. Alvarado (R), open', guideSeats: 230, guideLabel: '230+', races: ['KY-06'], mode: 'all',
-    why: 'Open Lexington-area seat DDHQ rates R+3. One of the first House results of the night (polls close 5 PM CT).' },
-  { label: 'VA-1', title: 'Taylor (D) vs. Wittman (R, inc.)', guideSeats: 235, guideLabel: '~235', races: ['VA-01'], mode: 'all',
-    why: 'Trump +5 in 2024, DDHQ R+5. A Democratic win here is the guide\'s marker for wave territory.' },
-  { label: 'Iowa sweep', title: 'IA-1, IA-2 and IA-3', guideSeats: 239, guideLabel: '~239', races: ['IA-01', 'IA-02', 'IA-03'], mode: 'all',
-    why: 'Democrats winning all three competitive Iowa seats (Iowa has four; IA-4 is safely Republican). DDHQ rates them D+7, D+1 and D+4.' },
-  { label: 'VA-5', title: 'Perriello (D) vs. McGuire (R, inc.)', guideSeats: 250, guideLabel: '~250', races: ['VA-05'], mode: 'all',
-    why: 'Trump +12 in 2024, DDHQ R+4. A Democratic win would be a reach-seat result.' },
-  { label: 'Any of IN-5, FL-27, NC-9, OH-15', title: 'Reach seats', guideSeats: 252, guideLabel: '250+', races: ['IN-05', 'FL-27', 'NC-09', 'OH-15'], mode: 'any',
-    why: 'Seats DDHQ rates R+5 to R+8. The guide treats a Democratic win in any one of them as a tsunami-level signal.' },
-];
-
 // Early signals: the first House races (page 2). [district, D, R, inc('d'|'r'|null), close, lateR, m2024, ddhq]
 export const EARLY_HOUSE = [
   ['VA-02', 'Luria', 'Kiggans', 'r', '18:00', false, 0, 7],

@@ -1,4 +1,4 @@
-import { data, onUpdate, startLive, startDemo, setMode, refreshNow, nowNight, setHouseFallbackList, feedHealth, FEEDS } from './api.js';
+import { data, onUpdate, startLive, refreshNow, nowNight, setHouseFallbackList, feedHealth, FEEDS } from './api.js';
 import { STATES } from './data/guide.js';
 import { fmtClock, fmtDayLabel, fmtCountdown, ago, esc, store, fmtNightTime } from './util.js';
 import { senateTally, houseTally, nightMiss, HOUSE_META } from './model.js';
@@ -107,34 +107,20 @@ function render({ background = false } = {}) {
 }
 
 const HEALTH_TEXT = {
-  live: ['ok', 'LIVE'], stale: ['warn', 'STALE'], offline: ['err', 'OFFLINE'], connecting: ['busy', 'CONNECTING'], demo: ['demo', 'REHEARSAL'],
+  live: ['ok', 'LIVE'], stale: ['warn', 'STALE'], offline: ['err', 'OFFLINE'], connecting: ['busy', 'CONNECTING'],
 };
 function renderStatus() {
-  const live = data.mode === 'live';
   const h = feedHealth();
   const [cls, word] = HEALTH_TEXT[h.state] || HEALTH_TEXT.connecting;
-  const when = h.last ? `last update ${fmtClock(nightFromTs(h.last), { seconds: true })} (<span id="ago">${ago(h.last)}</span>)` : live ? 'waiting for first data…' : 'simulated returns';
-  const detail = h.state === 'stale' ? (live ? ' · retrying' : ' · simulated outage') : h.state === 'offline' ? ' · retrying' : '';
+  const when = h.last ? `last update ${fmtClock(nightFromTs(h.last), { seconds: true })} (<span id="ago">${ago(h.last)}</span>)` : 'waiting for first data…';
+  const detail = h.state === 'stale' || h.state === 'offline' ? ' · retrying' : '';
   $('#status').innerHTML = `<button class="status-btn" data-health aria-expanded="${ui.healthOpen ? 'true' : 'false'}" title="Feed details">
     <span class="dot ${cls}" aria-hidden="true"></span><span class="st-txt"><b>${word}</b> <span class="muted">${when}${detail}</span></span></button>
     ${ui.healthOpen ? healthPanel() : ''}`;
-  document.body.classList.toggle('is-demo', !live);
   document.body.classList.toggle('is-stale', h.state === 'stale' || h.state === 'offline');
-  $('#mode-btn').textContent = live ? 'Rehearse the night' : 'Back to live';
-  $('#mode-btn').classList.toggle('on', !live);
-  $('#demo-bar').hidden = live;
-  if (!live && data.sim) {
-    const sl = $('#sim-t');
-    if (document.activeElement !== sl) sl.value = Math.round(data.sim.t);
-    $('#sim-label').textContent = `${fmtNightTime(Math.round(data.sim.t))} CT`;
-    $('#sim-play').textContent = data.sim.playing ? 'Pause' : 'Play';
-    $('#sim-err').textContent = `simulated miss vs DDHQ: ${data.sim.nationalErr >= 0 ? 'D' : 'R'}+${Math.abs(data.sim.nationalErr).toFixed(1)}`;
-    $('#sim-scenario').value = data.simScenario || 'random';
-  }
 }
 const nightFromTs = (ts) => (ts - Date.UTC(2026, 10, 3, 6)) / 60000;
 function healthPanel() {
-  if (data.mode === 'demo') return `<div class="health-pop" role="dialog" aria-label="Feed status"><p><b>Rehearsal mode.</b> Every number is simulated. Nothing is fetched from civicAPI until you go back to live.</p>${data.errors.general ? '<p class="warn">A simulated feed outage is under way: data has stopped updating.</p>' : ''}</div>`;
   return `<div class="health-pop" role="dialog" aria-label="Feed status"><p><b>civicAPI feeds</b> <span class="muted">(results provider; calls are civicAPI's)</span></p>
     <table class="mini-t"><tbody>${FEEDS.map(([k, label, every]) => {
       const ok = data.status[k];
@@ -160,7 +146,7 @@ function tickClock() {
 function toast(e) {
   const el = document.createElement('div');
   el.className = `toast side-${e.side}`;
-  el.innerHTML = `${e.sim ? '<span class="simtag">SIMULATED</span>' : ''}<b>${esc(e.text)}</b>${e.sub ? `<small>${esc(e.sub)}</small>` : ''}`;
+  el.innerHTML = `<b>${esc(e.text)}</b>${e.sub ? `<small>${esc(e.sub)}</small>` : ''}`;
   if (e.href) el.onclick = () => { location.hash = e.href; };
   const box = $('#toasts');
   box.appendChild(el);
@@ -208,16 +194,9 @@ function init() {
     b.disabled = true; b.classList.add('spin'); b.setAttribute('aria-busy', 'true');
     const r = await refreshNow();
     b.disabled = false; b.classList.remove('spin'); b.removeAttribute('aria-busy');
-    toast(r.ok ? { side: 'n', text: r.sim ? 'Rehearsal refreshed' : `Refreshed at ${fmtClock(nightFromTs(r.at), { seconds: true })} CT`, sub: '' }
+    toast(r.ok ? { side: 'n', text: `Refreshed at ${fmtClock(nightFromTs(r.at), { seconds: true })} CT`, sub: '' }
       : { side: 'r', text: 'Refresh failed: civicAPI did not respond', sub: Object.values(r.errors || {})[0] || 'Showing the last good data. Retrying automatically.' });
     renderStatus();
-  };
-  $('#mode-btn').onclick = () => {
-    const next = data.mode === 'live' ? 'demo' : 'live';
-    document.querySelectorAll('.toast').forEach((t) => t.remove());
-    ui.healthOpen = false;
-    setMode(next);
-    resetFeed();
   };
   $('#notify-btn').onclick = async () => {
     if (!('Notification' in window)) return;
@@ -226,13 +205,6 @@ function init() {
     $('#notify-btn').classList.toggle('on', ui.notify);
     $('#notify-btn').textContent = ui.notify ? 'Alerts on' : 'Alerts';
   };
-  // rehearsal controls
-  $('#sim-play').onclick = () => { if (data.sim) { data.sim.playing = !data.sim.playing; renderStatus(); } };
-  $('#sim-speed').onchange = (e) => { if (data.sim) data.sim.speed = Number(e.target.value); };
-  $('#sim-t').oninput = (e) => { if (data.sim) { data.sim.setTime(Number(e.target.value)); } };
-  $('#sim-shuffle').onclick = () => { data.sim?.reshuffle(); resetFeed(); };
-  $('#sim-scenario').onchange = (e) => { const t = data.sim?.t; data.simScenario = e.target.value; startDemo({ scenario: e.target.value, start: t }); resetFeed(); };
-
   document.addEventListener('click', (e) => {
     const f = e.target.closest('[data-house-filter]');
     if (f) { ui.houseFilter = f.dataset.houseFilter; render(); }
@@ -285,14 +257,11 @@ function init() {
   onUpdate(() => { diffFeed(); if (ui.dragging || isTyping()) { pendingRender = true; renderTicker(); renderStatus(); return; } render({ background: true }); });
   setHouseFallbackList(Object.keys(HOUSE_META));
 
-  const params = new URLSearchParams(location.search);
-  const mode = params.has('demo') ? 'demo' : params.has('live') ? 'live' : store('en26-mode') || 'live';
   resetFeed();
-  if (mode === 'demo') { startDemo(); } else startLive();
-  if (mode === 'demo') $('#sim-speed').value = String(data.sim?.speed || 120);
+  startLive();
 
   setInterval(tickClock, 1000);
-  setInterval(() => { if (data.mode === 'live') render({ background: true }); }, 30_000); // time-based states (tells, "now")
+  setInterval(() => render({ background: true }), 30_000); // time-based states (tells, "now")
   tickClock();
   render();
 }

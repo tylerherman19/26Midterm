@@ -60,7 +60,6 @@ export function diffFeed() {
   if (fresh.length) {
     events = [...fresh.reverse(), ...events].slice(0, 250);
     store(`en26-feed-${data.mode}`, events);
-    fresh.forEach((e) => { e.sim = data.mode === 'demo'; });
     fresh.filter((e) => (e.kind === 'call' || e.kind === 'retract') && e.important).slice(0, 4).forEach((e) => toastFn?.(e));
   }
 }
@@ -71,7 +70,7 @@ export function latestImportant(n = 4) {
 
 export function resetFeed() {
   prev.clear();
-  events = data.mode === 'live' ? store('en26-feed-live') || [] : [];
+  events = store('en26-feed-live') || [];
 }
 
 export function feedHTML({ limit = 40 } = {}) {
@@ -80,6 +79,6 @@ export function feedHTML({ limit = 40 } = {}) {
     <li class="fe fe-${e.kind} side-${e.side || 'n'}">
       <time>${fmtClock(e.t)}</time>
       <span class="dot"></span>
-      <div>${e.sim ? '<span class="simtag">SIM</span> ' : ''}${e.href ? `<a href="${e.href}">${esc(e.text)}</a>` : esc(e.text)}${e.sub ? `<small>${esc(e.sub)}</small>` : ''}</div>
+      <div>${e.href ? `<a href="${e.href}">${esc(e.text)}</a>` : esc(e.text)}${e.sub ? `<small>${esc(e.sub)}</small>` : ''}</div>
     </li>`).join('')}</ol>`;
 }
