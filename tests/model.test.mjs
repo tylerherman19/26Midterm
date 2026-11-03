@@ -105,6 +105,25 @@ test('Senate: holdovers separate from 2026 calls; NE Osborn counts as D side', (
   assert.equal(s.leadR, 1); assert.equal(s.unavailable, 32);
 });
 
+test('Senate independents count as Democratic-aligned (calls and leads); other third parties do not', () => {
+  reset();
+  put(RACE_IDS.senate.ID, [C('Todd Achilles', 'Independent', 100, true), C('Jim Risch', 'Republican', 90)], 95);
+  put(RACE_IDS.senate.MT, [C('Seth Bodnar', 'Independent', 120), C('Dem X', 'Democratic', 10), C('Steve Daines', 'Republican', 100)], 60);
+  put(RACE_IDS.senate.SD, [C('Brian Bengs', 'Independent', 50), C('Mike Rounds', 'Republican', 100, true)], 90);
+  put(RACE_IDS.senate.OK, [C('Lib', 'Libertarian', 100, true), C('R', 'Republican', 90)], 95);
+  const s = M.senateTally();
+  assert.equal(s.calledD, 1, 'Idaho independent win counts D'); assert.equal(s.indD, 1);
+  assert.equal(s.leadD, 1, 'Montana independent lead counts D'); assert.equal(s.indLeadD, 1);
+  assert.equal(s.calledR, 1); assert.equal(s.calledO, 1, 'Libertarian stays other');
+  assert.equal(s.securedD, 35);
+  const mt = s.seats.find((x) => x.st === 'MT'); assert.ok(mt.res.margin > 0, 'margin measured independent vs Republican');
+});
+test('House independents are not counted as Democrats', () => {
+  reset();
+  put(RACE_IDS.house['AL-07'], [C('Indie', 'Independent', 900, true), C('R', 'Republican', 100)], 100);
+  const t = M.houseTally(); assert.equal(t.calledD, 0); assert.equal(t.calledO, 1);
+});
+
 // ---------- swing estimate gating ----------
 test('swing estimate withheld until 10 districts in 4 states are >=85% in or called', () => {
   reset();

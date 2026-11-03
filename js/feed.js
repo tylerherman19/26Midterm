@@ -1,6 +1,6 @@
 // Change feed: diffs successive snapshots of tracked races into "calls / lead changes / milestones".
 import { data, nowNight } from './api.js';
-import { readRace, HOUSE_META } from './model.js';
+import { readRace, readSenate, HOUSE_META } from './model.js';
 import { RACE_IDS } from './data/raceIds.js';
 import { STATES, STATE_NAMES } from './data/guide.js';
 import { esc, fmtMargin, fmtClock, store } from './util.js';
@@ -14,7 +14,7 @@ function tracked() {
   const out = [];
   for (const [st, id] of Object.entries(RACE_IDS.senate)) {
     const g = STATES[st]?.races.find((r) => r.office === 'senate');
-    out.push({ id, label: `${STATE_NAMES[st] || st} Senate`, opts: { d: g?.d, r: g?.r, dSideName: g?.dSideName }, key: true, href: STATES[st] ? `#/states/${st}` : null, dLabel: g?.dLabel || 'D' });
+    out.push({ id, label: `${STATE_NAMES[st] || st} Senate`, opts: { d: g?.d, r: g?.r, dSideName: g?.dSideName }, senate: g || {}, key: true, href: STATES[st] ? `#/states/${st}` : null, dLabel: g?.dLabel || 'D' });
   }
   for (const [st, id] of Object.entries(RACE_IDS.governor)) {
     if (!STATE_NAMES[st]) continue;
@@ -35,12 +35,12 @@ export function diffFeed() {
   for (const tr of trackedList) {
     const race = data.races.get(Number(tr.id));
     if (!race) continue;
-    const r = readRace(race, tr.opts);
+    const r = tr.senate ? readSenate(race, tr.senate) : readRace(race, tr.opts);
     const p = prev.get(tr.id);
     prev.set(tr.id, { called: r.called, leader: r.leader, rep: r.rep, margin: r.margin });
     if (!p) continue; // first sighting: baseline only
     const who = (side) => (side === 'd' ? r.dc?.name : side === 'r' ? r.rc?.name : 'Other');
-    const party = (side) => (side === 'd' ? tr.dLabel : side === 'r' ? 'R' : '');
+    const party = (side) => (side === 'd' ? (r.indAligned ? 'I' : tr.dLabel) : side === 'r' ? 'R' : '');
     if (!r.called && p.called) {
       fresh.push({ t, kind: 'retract', side: p.called, important: true, href: tr.href, text: `${tr.label}: call withdrawn by the results provider`, sub: r.hasVotes ? `${fmtMargin(r.margin, { digits: 1, dLabel: tr.dLabel })} with ${r.rep}% in` : '' });
     } else if (r.called && !p.called) {

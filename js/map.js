@@ -2,7 +2,7 @@
 import { STATE_SHAPES, VIEWBOX } from './data/statePaths.js';
 import { RACE_IDS } from './data/raceIds.js';
 import { STATES, SENATE, STATE_NAMES } from './data/guide.js';
-import { readRace, raceById } from './model.js';
+import { readRace, readSenate, raceById } from './model.js';
 import { esc, fmtMargin, fmtNightTime, hhmm } from './util.js';
 import { ui } from './state.js';
 import { raceStatus, simTag } from './status.js';
@@ -23,9 +23,9 @@ export function stateStatus(st, office) {
   const raw = raceById(id);
   if (!raw && !id) return { kind: 'none' };
   const g = STATES[st]?.races.find((r) => r.office === office);
-  const res = raw ? readRace(raw, { d: g?.d, r: g?.r, dSideName: g?.dSideName }) : null;
+  const res = raw ? (office === 'senate' ? readSenate(raw, g) : readRace(raw, { d: g?.d, r: g?.r, dSideName: g?.dSideName })) : null;
   const f = forecastFor(st, office);
-  const dLabel = g?.dLabel || 'D';
+  const dLabel = res?.indAligned ? 'I' : g?.dLabel || 'D';
   if (!raw) return { kind: 'none' };
   if (res?.called) return { kind: `call-${res.called === 'o' ? 'd' : res.called}`, res, f, g, dLabel };
   if (res?.hasVotes) return { kind: `lead-${res.margin >= 0 ? 'd' : 'r'}`, res, f, g, dLabel };

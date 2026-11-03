@@ -53,12 +53,12 @@ function senateCard() {
     ${seatBar({ total: 100, calledD: s.securedD, leadD: s.leadD, calledR: s.securedR, leadR: s.leadR, majority: 51 })}
     <table class="mini-t"><tbody>
       <tr><th>Not up in 2026 (holdovers)</th><td class="m-d">D ${s.holdD}</td><td class="m-r">R ${s.holdR}</td></tr>
-      <tr><th>2026 races called</th><td class="m-d">D ${v(s.calledD)}</td><td class="m-r">R ${v(s.calledR)}</td></tr>
+      <tr><th>2026 races called</th><td class="m-d">D ${v(s.calledD)}${s.indD ? ` <small>(incl. ${s.indD} independent)</small>` : ''}</td><td class="m-r">R ${v(s.calledR)}</td></tr>
       <tr><th>Leading, not called</th><td class="m-d">D ${v(s.leadD)}</td><td class="m-r">R ${v(s.leadR)}</td></tr>
       <tr><th>No votes reported yet</th><td colspan="2">${v(s.noVotes)} of ${s.up} races${s.tied ? ` · ${s.tied} tied` : ''}</td></tr>
     </tbody></table>
     <p class="proj"><span class="scen-tag">scenario</span> If every current leader wins and DDHQ's favorite wins each race with no votes yet: <b>D ${s.scenarioD}</b>, net ${s.scenarioNet >= 0 ? '+' : ''}${s.scenarioNet} ${tierChip(s.scenarioTier, { small: true })}. Pre-election DDHQ forecast: 51 D (${FORECAST_SOURCE.date}); tipping-point race Texas D+1.</p>
-    <p class="note">Senate tiers (guide p. 5): Riptide = GOP +3 to even, Tide = D net +1 to +3, Wave = +4 to +6 (control), Tsunami = +7 or more. Democrats start at 47.</p>
+    <p class="note"><b>D</b> includes independents, who caucus with Democrats: the 34 holdovers include King and Sanders, and an independent winning a 2026 race (such as Osborn in Nebraska) counts as Democratic-aligned. Senate tiers (guide p. 5): Riptide = GOP +3 to even, Tide = D net +1 to +3, Wave = +4 to +6 (control), Tsunami = +7 or more. Democrats start at 47.</p>
   </section>`;
 }
 

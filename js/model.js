@@ -59,7 +59,7 @@ export function statewide(st, office) {
   const g = s?.races.find((r) => r.office === office);
   const id = RACE_IDS[office]?.[st];
   const race = raceById(id);
-  const res = readRace(race, { d: g?.d, r: g?.r, dSideName: g?.dSideName });
+  const res = office === 'senate' ? readSenate(race, g) : readRace(race, { d: g?.d, r: g?.r, dSideName: g?.dSideName });
   return { st, office, guide: g, state: s, id, race, res, bench: benchmarks(st, office) };
 }
 export function allStatewide() {
@@ -172,18 +172,42 @@ function aggSeats(id) {
   return { d: Number(d.seats) || 0, r: Number(rr.seats) || 0, others: c.filter((x) => x !== d && x !== rr).reduce((s, x) => s + (Number(x.seats) || 0), 0) };
 }
 
-/** Senate: 34 D and 31 R seats are not on the ballot (holdovers); 35 seats are up in 2026. */
+/**
+ * Senate races: independents count on the Democratic side (they caucus with Democrats).
+ * If no Democrat is running, the strongest independent is the D-side candidate (e.g. Osborn in NE).
+ * If an independent wins or leads a race that also has a Democrat, the seat is still Democratic-aligned.
+ * Margins in that case compare the leading D-aligned candidate (D or I) with the Republican.
+ */
+export function readSenate(raw, g) {
+  if (!raw) return null;
+  const res = readRace(raw, { d: g?.d, r: g?.r, dSideName: g?.dSideName, allowInd: true });
+  const isInd = (c) => c && /independent/i.test(c.party || '');
+  res.indAligned = isInd(res.dc);
+  const c = res.candidates;
+  const top = [...c].sort((a, b) => b.votes - a.votes)[0];
+  const winner = c.find((x) => x.winner);
+  if (res.called === 'o' && isInd(winner)) { res.called = 'd'; res.indAligned = true; res.dc = winner; }
+  if (!res.called && res.hasVotes && res.leader === 'o' && isInd(top)) {
+    // an independent leads a race that also has a Democrat: measure the independent against the Republican
+    const tot = res.total || 1;
+    res.dc = top; res.pd = (top.votes / tot) * 100; res.margin = res.pr !== null ? res.pd - res.pr : null; res.leader = 'd'; res.indAligned = true;
+  }
+  return res;
+}
+
+/** Senate: 34 D and 31 R seats are not on the ballot (holdovers); 35 seats are up in 2026. The guide's 34 includes
+ * the two independents who caucus with Democrats (King, Sanders), matching its 47-seat Democratic starting point. */
 export function senateTally() {
-  let calledD = 0, calledR = 0, calledO = 0, leadD = 0, leadR = 0, tied = 0, noVotes = 0, noVotesFcD = 0, unavailable = 0;
+  let calledD = 0, calledR = 0, calledO = 0, leadD = 0, leadR = 0, tied = 0, noVotes = 0, noVotesFcD = 0, unavailable = 0, indD = 0, indLeadD = 0;
   const seats = SENATE.path.map(([st, ddhq, held]) => {
     const g = STATES[st]?.races.find((r) => r.office === 'senate');
     const raw = raceById(RACE_IDS.senate[st]);
-    const res = readRace(raw, { d: g?.d, r: g?.r, dSideName: g?.dSideName });
+    const res = readSenate(raw, g);
     let side = null, kind;
     if (!raw) { kind = 'unavailable'; unavailable++; }
-    else if (res.called) { side = res.called === 'o' ? (st === 'NE' ? 'd' : 'o') : res.called; kind = 'called'; side === 'd' ? calledD++ : side === 'r' ? calledR++ : calledO++; }
+    else if (res.called) { side = res.called; kind = 'called'; side === 'd' ? calledD++ : side === 'r' ? calledR++ : calledO++; if (side === 'd' && res.indAligned) indD++; }
     else if (res.hasVotes && res.margin !== null) {
-      if (Math.abs(res.margin) < 0.05) { kind = 'tied'; tied++; } else { side = res.margin > 0 ? 'd' : 'r'; kind = 'leading'; side === 'd' ? leadD++ : leadR++; }
+      if (Math.abs(res.margin) < 0.05) { kind = 'tied'; tied++; } else { side = res.margin > 0 ? 'd' : 'r'; kind = 'leading'; side === 'd' ? leadD++ : leadR++; if (side === 'd' && res.indAligned) indLeadD++; }
     } else { kind = 'novotes'; noVotes++; if (ddhq > 0) noVotesFcD++; }
     return { st, ddhq, held, side, kind, res, flip: !!side && kind !== 'novotes' && side !== held.toLowerCase() };
   });
@@ -192,7 +216,7 @@ export function senateTally() {
   const scenarioD = securedD + leadD + noVotesFcD;
   const agg = aggSeats(RACE_IDS.aggregate.senate);
   return {
-    seats, calledD, calledR, calledO, leadD, leadR, tied, noVotes, noVotesFcD, unavailable,
+    seats, calledD, calledR, calledO, leadD, leadR, tied, noVotes, noVotesFcD, unavailable, indD, indLeadD,
     holdD: SENATE.dNotUp, holdR: SENATE.rNotUp, securedD, securedR, up: SENATE.path.length,
     uncalled: SENATE.path.length - calledD - calledR - calledO,
     scenarioD, scenarioNet: scenarioD - SENATE.dBefore, scenarioTier: senateNetTier(scenarioD - SENATE.dBefore),
