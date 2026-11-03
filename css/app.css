@@ -73,13 +73,11 @@ i { font-style: normal; } /* <i> is only used for drawn shapes */
 .controls { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .status { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 0 6px; }
 .status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
-.status .dot.ok { background: var(--ok); box-shadow: 0 0 0 0 rgba(46, 155, 95, 0.5); animation: pulse 2s infinite; }
-.status .dot.busy { background: var(--ok); animation: blink 0.8s infinite; }
+.status .dot.ok { background: var(--ok); }
+.status .dot.busy { background: var(--muted); }
 .status .dot.warn { background: var(--warn); }
 .status .dot.err { background: var(--r); }
 .status .err-txt { color: var(--warn); margin-left: 6px; }
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(46, 155, 95, 0.45); } 70% { box-shadow: 0 0 0 8px rgba(46, 155, 95, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 155, 95, 0); } }
-@keyframes blink { 50% { opacity: 0.35; } }
 .btn { border: 1px solid var(--ink); background: var(--ink); color: var(--paper); border-radius: 999px; padding: 6px 13px; cursor: pointer; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
 .btn.ghost:hover { border-color: var(--ink); }
@@ -999,3 +997,4 @@ details.wl-row[open] > summary { background: var(--wash); }
   .ns-bar .band { overflow: hidden; }
   .ns-bar .band b { white-space: normal; }
 }
+
