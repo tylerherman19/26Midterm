@@ -7,8 +7,8 @@ const api = await import('../js/api.js');
 const M = await import('../js/model.js');
 const S = await import('../js/scenario.js');
 const { RACE_IDS } = await import('../js/data/raceIds.js');
-const { STATES, HOUSE_WATCH, EARLY_HOUSE, HOUSE_TIER_SEATS, SENATE } = await import('../js/data/guide.js');
-const { districtClose, stateClose } = await import('../js/data/closings.js');
+const { STATES, HOUSE_WATCH, EARLY_HOUSE, HOUSE_TIER_SEATS, SENATE, CLOSINGS, HOURS } = await import('../js/data/guide.js');
+const { districtClose, stateClose, STATE_CLOSE } = await import('../js/data/closings.js');
 const { CLOSE_84, SAFE_D } = await import('../js/data/houseForecast.js');
 const { data } = api;
 
@@ -146,6 +146,38 @@ test('feed health states', () => {
   data.status.general = Date.now() - 200_000; assert.equal(api.feedHealth().state, 'stale');
   data.status.general = Date.now() - 400_000; assert.equal(api.feedHealth().state, 'offline');
   data.status.general = Date.now() - 5_000; data.errors.general = 'x'; assert.equal(api.feedHealth().state, 'stale');
+});
+
+// ---------- poll closings ----------
+// Official closing times from The Green Papers (thegreenpapers.com/G26/PollingHours.phtml, checked Nov 3, 2026),
+// written as UTC on Nov 4: [first close, last close]. Central Standard Time = UTC-6, so CT = UTC - 6h.
+const GREEN_PAPERS_UTC = {
+  AL: ['01:00'], AK: ['05:00', '06:00'], AZ: ['02:00'], AR: ['01:30'], CA: ['04:00'], CO: ['02:00'], CT: ['01:00'],
+  DE: ['01:00'], FL: ['00:00', '01:00'], GA: ['00:00'], HI: ['05:00'], ID: ['03:00', '04:00'], IL: ['01:00'],
+  IN: ['23:00', '00:00'], IA: ['02:00'], KS: ['01:00', '02:00'], KY: ['23:00', '00:00'], LA: ['02:00'], ME: ['01:00'],
+  MD: ['01:00'], MA: ['01:00'], MI: ['01:00', '02:00'], MN: ['02:00'], MS: ['01:00'], MO: ['01:00'], MT: ['03:00'],
+  NE: ['02:00'], NV: ['03:00'], NH: ['00:00', '01:00'], NJ: ['01:00'], NM: ['02:00'], NY: ['02:00'], NC: ['00:30'],
+  ND: ['03:00', '04:00'], OH: ['00:30'], OK: ['01:00'], OR: ['04:00'], PA: ['01:00'], RI: ['01:00'], SC: ['00:00'],
+  SD: ['01:00', '02:00'], TN: ['01:00'], TX: ['01:00', '02:00'], UT: ['03:00'], VT: ['00:00'], VA: ['00:00'],
+  WA: ['04:00'], WV: ['00:30'], WI: ['02:00'], WY: ['02:00'],
+};
+const utcToCT = (u) => { const [h, m] = u.split(':').map(Number); const ct = (h < 12 ? h + 24 : h) - 6; return `${String(ct).padStart(2, '0')}:${String(m).padStart(2, '0')}`; };
+test('every state closing time matches The Green Papers, converted to Central Time', () => {
+  assert.equal(Object.keys(STATE_CLOSE).length, 50);
+  for (const [st, [first, last = first]] of Object.entries(GREEN_PAPERS_UTC)) {
+    assert.deepEqual([stateClose(st).most, stateClose(st).all], [utcToCT(first), utcToCT(last)], st);
+  }
+});
+test('hour-by-hour House lists put each district at the hour its last poll closes', () => {
+  for (const g of HOUSE_WATCH) for (const [d] of g.races) assert.equal(g.time, districtClose(d).all, `HOUSE_WATCH ${d}`);
+  for (const g of CLOSINGS) for (const d of g.house) assert.equal(g.time, districtClose(d).all, `CLOSINGS ${d}`);
+  for (const [d, , , , t] of EARLY_HOUSE) assert.ok([districtClose(d).most, districtClose(d).all].includes(t), `EARLY_HOUSE ${d}`);
+  for (const g of HOUSE_TIER_SEATS) for (const [d] of g.seats) assert.ok([districtClose(d).most, districtClose(d).all].includes(g.time), `tier ${d}`);
+});
+test('hour-by-hour "closing" labels name only states closing that hour', () => {
+  for (const h of HOURS) for (const st of (h.sub.match(/\b[A-Z]{2}\b/g) || [])) {
+    const c = stateClose(st); assert.ok([c.most, c.all].includes(h.time), `${h.label}: ${st} closes ${c.most}/${c.all}`);
+  }
 });
 
 console.log(`\n${n} tests passed${process.exitCode ? ', some FAILED' : ''}`);
