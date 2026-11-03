@@ -9,14 +9,22 @@ import { Simulator } from './sim.js';
 const BASE = 'https://civicapi.org/api/v2';
 const DATE = '2026-11-03';
 
-const INTERVAL = { general: 30_000, statewide: 60_000, wi: 90_000, details: 45_000 };
+export const INTERVAL = { general: 30_000, statewide: 60_000, wi: 90_000, mn: 90_000, details: 45_000 };
+export const FEEDS = [
+  ['general', 'House, Senate and national tallies', 30],
+  ['statewide', 'Governors and state chambers', 60],
+  ['details', 'County results (guide states)', 45],
+  ['wi', 'Wisconsin legislative districts', 90],
+  ['mn', 'Minnesota legislative districts', 90],
+];
 
 export const data = {
   mode: 'live', // 'live' | 'demo'
   races: new Map(), // id -> race summary {id, election_name, type, province, district, percent_reporting, candidates[]}
   details: new Map(), // id -> full race payload incl. region_results
   history: {}, // id -> [[nightMin, reporting, margin]]
-  status: { general: null, statewide: null, wi: null, details: null },
+  status: { general: null, statewide: null, wi: null, mn: null, details: null },
+  lastTry: {},
   errors: {},
   lastUpdate: 0,
   nextUpdate: 0,
@@ -114,6 +122,7 @@ function searchURL(params) {
 }
 
 async function fetchSearch(key, params) {
+  data.lastTry[key] = Date.now();
   try {
     const body = await getJSON(searchURL(params), { timeout: 60_000 });
     (body.races || []).forEach((r) => ingest(r));
@@ -140,6 +149,7 @@ export function detailIds() {
 }
 
 async function fetchDetails({ force = false } = {}) {
+  data.lastTry.details = Date.now();
   const t = nowNight();
   const targets = detailIds().filter((x) => {
     if (force) return true;
@@ -199,21 +209,43 @@ export function startLive() {
   }, INTERVAL.general));
   stops.push(loop(() => fetchSearch('statewide', { election_type: 'Statewide' }), INTERVAL.statewide, 1500));
   stops.push(loop(() => fetchSearch('wi', { province: 'WI', query: 'Wisconsin State', country: 'US' }), INTERVAL.wi, 3000));
+  stops.push(loop(() => fetchSearch('mn', { province: 'MN', query: 'Minnesota State', country: 'US' }), INTERVAL.mn, 6000));
   stops.push(loop(() => fetchDetails(), INTERVAL.details, 4500));
   emit();
 }
 
 export async function refreshNow() {
-  if (data.mode === 'demo') { data.sim?.tick(true); return; }
+  if (data.mode === 'demo') { data.sim?.tick(true); return { ok: true, at: Date.now(), sim: true }; }
+  const before = { ...data.status };
   await Promise.all([
     fetchSearch('general', { election_type: 'General' }),
     fetchSearch('statewide', { election_type: 'Statewide' }),
     fetchDetails({ force: true }),
   ]);
   data.nextUpdate = Date.now() + INTERVAL.general;
+  const ok = data.status.general !== before.general || data.status.statewide !== before.statewide;
+  return { ok, at: Date.now(), errors: { ...data.errors } };
+}
+
+/**
+ * Overall feed health. live: main feed updated within ~3 refresh cycles; stale: older than that or
+ * currently failing; offline: nothing good for 6+ minutes; connecting: no successful load yet.
+ */
+export function feedHealth() {
+  if (data.mode === 'demo') {
+    return data.errors.general ? { state: 'stale', everLoaded: true, label: 'Simulated feed interruption' } : { state: 'demo', everLoaded: true };
+  }
+  const last = Math.max(data.status.general || 0, data.status.statewide || 0);
+  const everLoaded = last > 0;
+  if (!everLoaded) return { state: Object.keys(data.errors).length ? 'offline' : 'connecting', everLoaded, last: null };
+  const age = Date.now() - last;
+  if (age < 100_000 && !data.errors.general) return { state: 'live', everLoaded, last, age };
+  if (age < 360_000) return { state: 'stale', everLoaded, last, age };
+  return { state: 'offline', everLoaded, last, age };
 }
 
 export function startDemo(opts = {}) {
+  data.simScenario = opts.scenario || data.simScenario || 'random';
   stopAll();
   data.mode = 'demo';
   data.races.clear();
@@ -222,6 +254,11 @@ export function startDemo(opts = {}) {
   data.errors = {};
   data.sim = new Simulator({
     ...opts,
+    scenario: data.simScenario,
+    onInterrupt(on) {
+      if (on) data.errors.general = 'Simulated feed interruption'; else delete data.errors.general;
+      emit();
+    },
     onData(races, details) {
       races.forEach((r) => ingest(r));
       details.forEach((r) => ingest(r, { detail: true }));

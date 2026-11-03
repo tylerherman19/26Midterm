@@ -6,7 +6,12 @@ import {
   STATES, SENATE, SENATE_TIER_BARS, HOUSE, HOUSE_TIER_SEATS, HOUSE_WATCH, EARLY_HOUSE, OPEN_SEAT_HOLDER, HOUSE_SIGNALS,
   RED_RIPTIDE_TESTS, WI_LEG, TEXAS,
 } from './data/guide.js';
-import { norm, surname, hhmm, interp } from './util.js';
+import { norm, surname, hhmm } from './util.js';
+import { districtClose } from './data/closings.js';
+import { DDHQ } from './data/houseForecast.js';
+import { REDRAWN } from './data/guide.js';
+import { houseSeatsAtShift, senateSeatsAtShift, ddhqFor } from './scenario.js';
+import { raceStatus } from './status.js';
 
 // ---------- single race ----------
 const isDem = (p) => /democrat|dfl/i.test(p || '');
@@ -22,7 +27,7 @@ export function readRace(race, opts = {}) {
   const total = c.reduce((s, x) => s + x.votes, 0);
   const byName = (sn) => sn && c.find((x) => norm(surname(x.name)) === norm(sn) || norm(x.name).includes(norm(sn)));
   const best = (pred) => c.filter(pred).sort((a, b) => b.votes - a.votes)[0];
-  let dc = (opts.dSideName && byName(opts.dSideName)) || byName(opts.d) || best((x) => isDem(x.party)) || (opts.allowInd !== false && best((x) => /independent/i.test(x.party)));
+  let dc = (opts.dSideName && byName(opts.dSideName)) || byName(opts.d) || best((x) => isDem(x.party)) || (opts.allowInd && best((x) => /independent/i.test(x.party)));
   let rc = byName(opts.r) || best((x) => isRep(x.party) && x !== dc);
   if (rc === dc) rc = best((x) => isRep(x.party) && x !== dc);
   const pct = (x) => (x ? (total ? (x.votes / total) * 100 : Number(x.percent) || 0) : null);
@@ -35,9 +40,11 @@ export function readRace(race, opts = {}) {
   if (winner) called = winner === dc ? 'd' : winner === rc ? 'r' : 'o';
   let leader = null;
   if (hasVotes) {
-    const top = [...c].sort((a, b) => b.votes - a.votes)[0];
-    leader = top === dc ? 'd' : top === rc ? 'r' : 'o';
+    const sorted = [...c].sort((a, b) => b.votes - a.votes);
+    const top = sorted[0];
+    leader = sorted[1] && sorted[1].votes === top.votes ? 'tie' : top === dc ? 'd' : top === rc ? 'r' : 'o';
   }
+  const winners = c.filter((x) => x.winner).length;
   return {
     id: race.id, name: race.election_name, rep, total, hasVotes, margin, pd, pr, dc, rc, called, leader, candidates: c,
     updated: race.last_updated, testData: race.test_data,
@@ -86,7 +93,14 @@ export function benchmarks(st, office) {
   });
   const implied = wSum > 0 ? wImplied / wSum : null;
   const coverage = s.counties.reduce((a, c) => a + c[1], 0);
-  return { rows, implied, expectedIn, coverage, n: rows.filter((r) => r.live !== null).length };
+  const used = rows.filter((r) => r.live !== null);
+  // County-benchmark estimate: weighted average of (live county margin - tie target). Shown once 2+ counties report.
+  const estimate = used.length >= 2 ? {
+    value: implied, n: used.length, of: rows.length,
+    sharePct: used.reduce((a2, r) => a2 + r.share, 0),
+    minRep: Math.min(...used.map((r) => r.rep ?? 0)), counties: used.map((r) => `${r.name} ${r.rep ?? '?'}%`),
+  } : null;
+  return { rows, implied, estimate, expectedIn, coverage, n: used.length, office, appliesTo: s.races[0].office };
 }
 
 // ---------- tiers ----------
@@ -118,31 +132,33 @@ export function houseSeatsTier(seats) {
 // ---------- House seats ----------
 const houseMeta = (() => {
   const m = {};
-  HOUSE_WATCH.forEach((g) => g.races.forEach(([d, dn, rn, inc, lean]) => {
-    m[d] = { d, dn, rn, inc, lean, close: g.time, held: inc || OPEN_SEAT_HOLDER[d] || null, watch: true };
-  }));
-  EARLY_HOUSE.forEach(([d, dn, rn, inc, close, lateR, m2024, ddhq]) => {
-    m[d] = { ...(m[d] || {}), d, dn: m[d]?.dn || dn, rn: m[d]?.rn || rn, inc, close: m[d]?.close || close, lateR, m2024, ddhq, held: m[d]?.held || inc || OPEN_SEAT_HOLDER[d] };
-  });
-  HOUSE_TIER_SEATS.forEach((g) => g.seats.forEach(([d, holder, ddhq, redrawn]) => {
-    const held = /\(D\)/.test(holder) ? 'd' : 'r';
-    m[d] = { ...(m[d] || {}), d, holder, ddhq, redrawn: !!redrawn, close: m[d]?.close || g.time, held: m[d]?.held || held };
-  }));
+  const put = (d, o) => { m[d] = { ...(m[d] || {}), ...o, d }; };
+  HOUSE_WATCH.forEach((g) => g.races.forEach(([d, dn, rn, inc, lean]) => put(d, { dn, rn, inc, lean, watch: true, held: inc || OPEN_SEAT_HOLDER[d] || null })));
+  EARLY_HOUSE.forEach(([d, dn, rn, inc, , lateR, m2024]) => put(d, { dn: m[d]?.dn || dn, rn: m[d]?.rn || rn, inc: m[d]?.inc ?? inc, lateR, m2024, early: true, held: m[d]?.held || inc || OPEN_SEAT_HOLDER[d] || null }));
+  HOUSE_TIER_SEATS.forEach((g) => g.seats.forEach(([d, holder, , redrawn]) => put(d, { holder, redrawn: !!redrawn, held: m[d]?.held || (/\(D\)/.test(holder) ? 'd' : 'r') })));
+  // NE-02 is referenced by the guide's 8 PM notes but is not in its 85-race list; candidates come from civicAPI.
+  put('NE-02', { held: 'r', inc: null, note: 'Open seat (Bacon, R, retiring). Not in the guide\'s 85-race list.' });
+  put('NV-03', { held: 'd', inc: 'd', note: 'Referenced in the guide\'s 9 PM notes; not in its 85-race list.' });
+  for (const d of Object.keys(m)) {
+    const c = districtClose(d);
+    m[d].close = c.all; m[d].closeMost = c.most; m[d].closeNote = c.note || '';
+    m[d].ddhq = ddhqFor(d);
+    if (m[d].lean === undefined && m[d].m2024 !== undefined) m[d].lean = m[d].m2024;
+  }
   return m;
 })();
 export const HOUSE_META = houseMeta;
 
 export function house(dist) {
-  const meta = houseMeta[dist] || { d: dist };
+  const meta = houseMeta[dist] || { d: dist, close: districtClose(dist).all, ddhq: ddhqFor(dist) };
   const id = RACE_IDS.house[dist];
   const race = raceById(id);
   const res = readRace(race, { d: meta.dn, r: meta.rn });
-  let status = 'waiting';
-  if (res?.called) status = 'called';
-  else if (res?.hasVotes) status = 'counting';
+  const st = raceStatus(res, { close: meta.close, covered: !!id });
   const party = res?.called || (res?.hasVotes ? res.leader : null);
-  const flip = party && meta.held && (party === 'd' || party === 'r') && party !== meta.held;
-  return { dist, meta, id, race, res, status, party, flip };
+  const flip = !!(party && meta.held && (party === 'd' || party === 'r') && party !== meta.held && !REDRAWN.has(dist));
+  const vsForecast = res?.hasVotes && res.margin !== null && meta.ddhq !== null && meta.ddhq !== undefined ? res.margin - meta.ddhq : null;
+  return { dist, meta, id, race, res, status: st.key, st, party, flip, vsForecast };
 }
 
 // ---------- national tallies ----------
@@ -156,99 +172,134 @@ function aggSeats(id) {
   return { d: Number(d.seats) || 0, r: Number(rr.seats) || 0, others: c.filter((x) => x !== d && x !== rr).reduce((s, x) => s + (Number(x.seats) || 0), 0) };
 }
 
+/** Senate: 34 D and 31 R seats are not on the ballot (holdovers); 35 seats are up in 2026. */
 export function senateTally() {
-  let calledD = 0, calledR = 0, leadD = 0, leadR = 0, waitD = 0, waitR = 0;
+  let calledD = 0, calledR = 0, calledO = 0, leadD = 0, leadR = 0, tied = 0, noVotes = 0, noVotesFcD = 0, unavailable = 0;
   const seats = SENATE.path.map(([st, ddhq, held]) => {
     const g = STATES[st]?.races.find((r) => r.office === 'senate');
-    const res = readRace(raceById(RACE_IDS.senate[st]), { d: g?.d, r: g?.r, dSideName: g?.dSideName });
-    let side, kind;
-    if (res?.called === 'd' || res?.called === 'r') { side = res.called; kind = 'called'; }
-    else if (res?.called === 'o') { side = st === 'NE' ? 'd' : 'r'; kind = 'called'; }
-    else if (res?.hasVotes && res.margin !== null) { side = res.margin >= 0 ? 'd' : 'r'; kind = 'leading'; }
-    else { side = ddhq > 0 ? 'd' : 'r'; kind = 'forecast'; }
-    if (kind === 'called') side === 'd' ? calledD++ : calledR++;
-    else if (kind === 'leading') side === 'd' ? leadD++ : leadR++;
-    else side === 'd' ? waitD++ : waitR++;
-    return { st, ddhq, held, side, kind, res, flip: side !== held.toLowerCase() };
+    const raw = raceById(RACE_IDS.senate[st]);
+    const res = readRace(raw, { d: g?.d, r: g?.r, dSideName: g?.dSideName });
+    let side = null, kind;
+    if (!raw) { kind = 'unavailable'; unavailable++; }
+    else if (res.called) { side = res.called === 'o' ? (st === 'NE' ? 'd' : 'o') : res.called; kind = 'called'; side === 'd' ? calledD++ : side === 'r' ? calledR++ : calledO++; }
+    else if (res.hasVotes && res.margin !== null) {
+      if (Math.abs(res.margin) < 0.05) { kind = 'tied'; tied++; } else { side = res.margin > 0 ? 'd' : 'r'; kind = 'leading'; side === 'd' ? leadD++ : leadR++; }
+    } else { kind = 'novotes'; noVotes++; if (ddhq > 0) noVotesFcD++; }
+    return { st, ddhq, held, side, kind, res, flip: !!side && kind !== 'novotes' && side !== held.toLowerCase() };
   });
+  const securedD = SENATE.dNotUp + calledD, securedR = SENATE.rNotUp + calledR;
+  // Scenario (not a projection): current leaders win, and forecast favorites win races with no votes yet.
+  const scenarioD = securedD + leadD + noVotesFcD;
   const agg = aggSeats(RACE_IDS.aggregate.senate);
-  // Prefer civicAPI's official seat count for called races when available (includes holdovers)
-  const officialD = agg ? agg.d : SENATE.dNotUp + calledD;
-  const officialR = agg ? agg.r : SENATE.rNotUp + calledR;
-  const projD = SENATE.dNotUp + calledD + leadD + waitD;
   return {
-    seats, calledD, calledR, leadD, leadR, waitD, waitR, officialD, officialR,
-    dNotUp: SENATE.dNotUp, rNotUp: SENATE.rNotUp, projD, projR: 100 - projD,
-    net: projD - SENATE.dBefore, tier: senateNetTier(projD - SENATE.dBefore),
-    control: officialD >= 51 ? 'd' : officialR >= 50 ? 'r' : null,
+    seats, calledD, calledR, calledO, leadD, leadR, tied, noVotes, noVotesFcD, unavailable,
+    holdD: SENATE.dNotUp, holdR: SENATE.rNotUp, securedD, securedR, up: SENATE.path.length,
+    uncalled: SENATE.path.length - calledD - calledR - calledO,
+    scenarioD, scenarioNet: scenarioD - SENATE.dBefore, scenarioTier: senateNetTier(scenarioD - SENATE.dBefore),
+    anyResults: calledD + calledR + calledO + leadD + leadR + tied > 0,
+    control: securedD >= 51 ? 'd' : securedR >= 50 ? 'r' : null, // 50 R seats + VP tiebreak = control
+    feedCheck: agg ? { d: agg.d, r: agg.r, matches: agg.d === securedD && agg.r === securedR } : null,
   };
 }
 
+/** House: computed from all 435 district races so every number reconciles. civicAPI's national tally is a cross-check. */
 export function houseTally() {
-  let calledD = 0, calledR = 0, leadD = 0, leadR = 0, waiting = 0;
-  for (const dist of Object.keys(RACE_IDS.house)) {
+  let calledD = 0, calledR = 0, calledO = 0, leadD = 0, leadR = 0, leadO = 0, tied = 0, noVotes = 0, unavailable = 0;
+  const dists = [...new Set(Object.keys(RACE_IDS.house))];
+  for (const dist of dists) {
     const h = house(dist);
-    if (h.res?.called === 'd') calledD++;
-    else if (h.res?.called === 'r') calledR++;
-    else if (h.res?.hasVotes) (h.res.leader === 'd' ? leadD++ : leadR++);
-    else waiting++;
+    const r = h.res;
+    if (!h.race) unavailable++;
+    else if (r.called === 'd') calledD++;
+    else if (r.called === 'r') calledR++;
+    else if (r.called) calledO++;
+    else if (r.hasVotes) {
+      if (r.margin !== null && Math.abs(r.margin) < 0.05) tied++;
+      else if (r.leader === 'd') leadD++; else if (r.leader === 'r') leadR++; else leadO++;
+    } else noVotes++;
   }
+  const called = calledD + calledR + calledO;
   const agg = aggSeats(RACE_IDS.aggregate.house);
-  const officialD = agg && agg.d >= calledD ? agg.d : calledD;
-  const officialR = agg && agg.r >= calledR ? agg.r : calledR;
-  return { calledD: officialD, calledR: officialR, leadD, leadR, waiting, total: 435,
-    control: officialD >= 218 ? 'd' : officialR >= 218 ? 'r' : null };
+  return {
+    total: dists.length, calledD, calledR, calledO, called, uncalled: dists.length - called,
+    leadD, leadR, leadO, tied, noVotes, unavailable,
+    needD: Math.max(0, 218 - calledD), needR: Math.max(0, 218 - calledR),
+    control: calledD >= 218 ? 'd' : calledR >= 218 ? 'r' : null,
+    reconciles: calledD + calledR + calledO + leadD + leadR + leadO + tied + noVotes + unavailable === dists.length,
+    feedCheck: agg ? { d: agg.d, r: agg.r, matches: agg.d === calledD && agg.r === calledR } : null,
+  };
 }
 
 export function governorTally() {
-  const agg = aggSeats(RACE_IDS.aggregate.governor);
-  let calledD = 0, calledR = 0, leadD = 0, leadR = 0, flips = [];
+  let calledD = 0, calledR = 0, leadD = 0, leadR = 0, up = 0;
   for (const [st, id] of Object.entries(RACE_IDS.governor)) {
-    if (st.length !== 2 || ['GU', 'VI', 'MP'].includes(st)) continue;
+    if (st.length !== 2 || ['GU', 'VI', 'MP', 'US'].includes(st)) continue;
+    up++;
     const g = STATES[st]?.races.find((r) => r.office === 'governor');
     const res = readRace(raceById(id), { d: g?.d, r: g?.r });
     if (!res) continue;
     if (res.called === 'd') calledD++; else if (res.called === 'r') calledR++;
     else if (res.hasVotes) (res.leader === 'd' ? leadD++ : leadR++);
   }
-  return { calledD: agg?.d ?? calledD, calledR: agg?.r ?? calledR, leadD, leadR };
+  return { up, calledD, calledR, leadD, leadR };
 }
 
-// ---------- "the miss": how far results run from DDHQ ----------
-// Uses county-benchmark implied margins for statewide races (robust to count order) and raw margins in
-// House races once a seat is mostly counted. Maps the average miss through the guide's uniform-miss curves.
-const SENATE_MISS_CURVE = { '-12': 43, '-9': 46, '-6': 47, '-3': 48, 0: 51, 3: 55, 6: 55, 9: 58, 12: 59 };
-const HOUSE_MISS_CURVE = { '-10': 195, '-8': 204, '-6': 213, '-4': 219, '-2': 224, 0: 230, 2: 236, 4: 244, 6: 262, 8: 278, 10: 285 };
+// ---------- How results compare with DDHQ ----------
+// House: only districts with a DDHQ margin that are called or at least 85% reporting count. Partial counts are
+// not treated as representative. The estimate is withheld until 10+ districts from 4+ states qualify.
+export const SWING_MIN = { districts: 10, states: 4, reporting: 85 };
+const quantile = (arr, q) => { const a = [...arr].sort((x, y) => x - y); const i = (a.length - 1) * q; const lo = Math.floor(i), hi = Math.ceil(i); return a[lo] + (a[hi] - a[lo]) * (i - lo); };
 
-export function nightMiss() {
+export function houseSwing() {
+  const items = [];
+  let partial = 0;
+  for (const dist of Object.keys(DDHQ)) {
+    const h = house(dist);
+    const r = h.res;
+    if (!r?.hasVotes || r.margin === null) continue;
+    if (!r.called && r.rep < SWING_MIN.reporting) { partial++; continue; }
+    items.push({ key: dist, st: dist.slice(0, 2), miss: r.margin - DDHQ[dist], rep: r.rep, called: !!r.called, margin: r.margin, ddhq: DDHQ[dist] });
+  }
+  const states = new Set(items.map((x) => x.st)).size;
+  const enough = items.length >= SWING_MIN.districts && states >= SWING_MIN.states;
+  const misses = items.map((x) => x.miss);
+  const median = items.length ? quantile(misses, 0.5) : null;
+  const lo = items.length ? quantile(misses, 0.25) : null, hi = items.length ? quantile(misses, 0.75) : null;
+  return {
+    items, n: items.length, states, partial, enough, median, lo, hi,
+    seats: enough ? houseSeatsAtShift(median) : null,
+    seatsLo: enough ? houseSeatsAtShift(lo) : null, seatsHi: enough ? houseSeatsAtShift(hi) : null,
+  };
+}
+
+// Statewide races: compare the county-benchmark estimate (needs 3+ guide counties at 50%+) or, failing that,
+// the statewide margin once 85%+ is reported.
+export function statewideSwing() {
   const items = [];
   for (const sw of allStatewide()) {
     const f = sw.guide?.forecast;
     if (f === undefined) continue;
-    let est = null, w = 0, src = '';
-    if (sw.bench?.implied !== null && sw.bench?.implied !== undefined && sw.bench.expectedIn > 3) {
-      est = sw.bench.implied; w = Math.min(1, sw.bench.expectedIn / Math.max(10, sw.bench.coverage * 0.6)); src = 'counties';
-    } else if (sw.res?.hasVotes && sw.res.rep >= 60) {
-      est = sw.res.margin; w = (sw.res.rep - 50) / 50; src = 'statewide';
+    const b = sw.bench;
+    const solid = b ? b.rows.filter((r) => r.live !== null && (r.rep ?? 0) >= 50) : [];
+    if (b && solid.length >= 3) {
+      const w = solid.reduce((s, r) => s + r.share, 0);
+      const est = solid.reduce((s, r) => s + r.share * r.vsTie, 0) / w;
+      items.push({ key: `${sw.st} ${sw.office === 'senate' ? 'Sen' : 'Gov'}`, miss: est - f, src: `${solid.length} counties ≥50% in`, rep: sw.res?.rep ?? 0 });
+    } else if (sw.res?.hasVotes && (sw.res.called || sw.res.rep >= 85)) {
+      items.push({ key: `${sw.st} ${sw.office === 'senate' ? 'Sen' : 'Gov'}`, miss: sw.res.margin - f, src: `statewide, ${sw.res.rep}% in`, rep: sw.res.rep });
     }
-    if (est !== null) items.push({ key: `${sw.st} ${sw.office === 'senate' ? 'Sen' : 'Gov'}`, miss: est - f, w, src, kind: 'state' });
   }
-  for (const [dist, meta] of Object.entries(houseMeta)) {
-    if (meta.ddhq === undefined) continue;
-    const h = house(dist);
-    if (!h.res?.hasVotes || h.res.rep < 60 || h.res.margin === null) continue;
-    items.push({ key: dist, miss: h.res.margin - meta.ddhq, w: ((h.res.rep - 50) / 50) * 0.6, src: 'district', kind: 'house' });
-  }
-  const tw = items.reduce((s, x) => s + x.w, 0);
-  const miss = tw > 0 ? items.reduce((s, x) => s + x.w * x.miss, 0) / tw : null;
-  return {
-    miss, items, n: items.length,
-    senateSeats: miss === null ? null : Math.round(interp(SENATE_MISS_CURVE, miss)),
-    houseSeats: miss === null ? null : Math.round(interp(HOUSE_MISS_CURVE, miss)),
-  };
+  const median = items.length ? quantile(items.map((x) => x.miss), 0.5) : null;
+  return { items, n: items.length, median, enough: items.length >= 4, senateSeats: items.length >= 4 ? senateSeatsAtShift(median) : null };
 }
 
-// ---------- House "how big is the night" signals ----------
+/** Back-compat summary used by the header ticker. */
+export function nightMiss() {
+  const h = houseSwing();
+  return { miss: h.enough ? h.median : null, n: h.n, houseSeats: h.seats, enough: h.enough };
+}
+
+// ---------- House "how big is the night" race examples ----------
 export function houseSignals() {
   return HOUSE_SIGNALS.map((s) => {
     const rs = s.races.map((d) => house(d));
@@ -274,14 +325,15 @@ export function riptideTests() {
   return RED_RIPTIDE_TESTS.map((t) => {
     const rs = t.races.map((d) => house(d));
     const gopWon = rs.filter((h) => h.res?.called === 'r').length;
-    const gopLead = rs.filter((h) => !h.res?.called && h.res?.hasVotes && h.res.leader === 'r').length;
     const dWon = rs.filter((h) => h.res?.called === 'd').length;
+    const gopLead = rs.filter((h) => !h.res?.called && h.res?.hasVotes && h.res.leader === 'r').length;
+    const uncalled = rs.length - gopWon - dWon;
     let state = 'waiting';
     if (gopWon >= t.need) state = 'hit';
     else if (t.of - dWon < t.need) state = 'miss';
     else if (gopWon + gopLead >= t.need) state = 'leaning';
     else if (rs.some((h) => h.res?.hasVotes)) state = 'trailing';
-    return { ...t, rs, state, gopWon, gopLead };
+    return { ...t, rs, state, gopWon, dWon, gopLead, uncalled };
   });
 }
 
@@ -308,8 +360,9 @@ const EVAL = {
     const r = live('OH', 'senate');
     const m = r.bench?.implied ?? r.res?.margin;
     if (m === null || m === undefined) return { state: 'waiting', ev: 'No votes yet' };
-    const ahead = m - STATES.OH.pres2024; // 2024 Ohio: Trump +11
-    return { state: ahead >= 4 ? 'hit' : 'miss', soft: !r.res?.called, ev: `Brown ${fmt(m)} vs Trump +11 in 2024 → ${ahead >= 0 ? '+' : ''}${ahead.toFixed(1)} pts` };
+    // Brown's own 2024 Senate race: Moreno won 50.1% to 46.5% (R+3.6).
+    const ahead = m - -3.6;
+    return { state: ahead >= 4 ? 'hit' : 'miss', soft: !r.res?.called, ev: `Brown ${fmt(m)} vs his 2024 result R+3.6 → ${ahead >= 0 ? '+' : ''}${ahead.toFixed(1)} pts` };
   },
   paxtonTrailsAbbott() {
     const s = live('TX', 'senate').res, g = live('TX', 'governor').res;
@@ -330,20 +383,12 @@ const EVAL = {
     return { state: 'waiting', ev: r?.hasVotes ? `${fmt(r.margin)} · ${r.rep}% in` : 'Check at 8 PM' };
   },
   talaricoSouthTX() {
-    const det = data.details.get(Number(RACE_IDS.senate.TX));
-    const regions = det?.region_results ? Object.values(det.region_results) : [];
-    const SOUTH = { hidalgo: 0.4, cameron: -4.5, webb: 1.4, elpaso: 15, starr: -15.4, maverick: -18.6 }; // Harris '24 margins (approx.)
-    let w = 0, delta = 0, names = [];
-    for (const reg of regions) {
-      const k = norm(reg.name);
-      if (!(k in SOUTH)) continue;
-      const r = readRace({ ...reg, id: k }, { d: 'Talarico', r: 'Paxton' });
-      if (!r?.hasVotes) continue;
-      w += r.total; delta += r.total * (r.margin - SOUTH[k]); names.push(reg.name);
-    }
-    if (!w) return { state: 'waiting', ev: 'South Texas counties not in yet' };
-    const d = delta / w;
-    return { state: d > 0 ? 'hit' : 'miss', soft: true, ev: `${names.slice(0, 4).join(', ')}: Talarico ${d >= 0 ? '+' : ''}${d.toFixed(1)} vs Harris '24 (approx. 2024 baselines)` };
+    // The feed reports counties, not "South Texas". El Paso is the only South/West Texas county with a 2024
+    // baseline in the guide (Harris D+15), so it is the proxy.
+    const c = county('TX', 'senate', 'El Paso');
+    if (!c || c.live === null) return { state: 'waiting', ev: 'El Paso County not reporting yet (closes 8 PM CT)' };
+    const d = c.live - c.m2024;
+    return { state: d > 0 ? 'hit' : 'miss', soft: (c.rep ?? 0) < 90, ev: `El Paso ${fmt(c.live)} (${c.rep ?? '?'}% in) vs Harris '24 D+15 → ${d >= 0 ? '+' : ''}${d.toFixed(1)}` };
   },
   flGovUncalled(t) {
     const r = live('FL', 'governor').res;
@@ -381,20 +426,22 @@ const EVAL = {
 };
 const fmt = (m) => (m === null || m === undefined ? '—' : Math.abs(m) < 0.05 ? 'Even' : `${m > 0 ? 'D' : 'R'}+${Math.abs(m).toFixed(1)}`);
 
+// Tell evaluation. kind: 'auto' (checked from live data), 'manual' (needs a human: data the feed does not have).
+// state: hit / miss / pending (data in, not decisive) / notyet (window not open or no data) / manual.
 export function evalTell(tell) {
   const t = nowNight();
   const start = hhmm(tell.win[0]), end = hhmm(tell.win[1]);
   const phase = t < start ? 'upcoming' : t <= end ? 'active' : 'past';
-  if (!tell.auto || !EVAL[tell.auto]) return { phase, state: 'manual', ev: 'Check by hand' };
+  if (!tell.auto || !EVAL[tell.auto]) return { phase, kind: 'manual', state: 'manual', ev: tell.manualNote || 'The feed does not carry the data needed; check by hand.' };
   try {
     const r = EVAL[tell.auto](t);
     let state = r.state;
-    if (state.startsWith('leaning')) state = state.endsWith('yes') ? 'hit' : 'pending';
-    if (phase === 'upcoming' && state !== 'hit') state = 'waiting';
-    return { phase, ...r, state };
+    if (state === 'waiting') state = 'notyet';
+    if (phase === 'upcoming' && state !== 'hit') state = 'notyet';
+    return { phase, kind: 'auto', ...r, state };
   } catch (e) {
     console.warn(e);
-    return { phase, state: 'waiting', ev: '' };
+    return { phase, kind: 'auto', state: 'notyet', ev: '' };
   }
 }
 
@@ -409,18 +456,39 @@ export function wiChamber(kind) {
   const conf = WI_LEG[kind];
   const prefix = kind === 'senate' ? 'SD' : 'AD';
   const keys = Object.keys(RACE_IDS.wi).filter((k) => k.startsWith(prefix));
-  let calledD = 0, calledR = 0, leadD = 0, leadR = 0, waiting = 0;
+  let calledD = 0, calledR = 0, leadD = 0, leadR = 0, noVotes = 0, unavailable = 0;
   const seats = keys.map((k) => {
     const r = wiDistrict(k);
-    if (r.res?.called === 'd') calledD++;
-    else if (r.res?.called === 'r') calledR++;
-    else if (r.res?.hasVotes) (r.res.leader === 'd' ? leadD++ : leadR++);
-    else waiting++;
+    if (!r.race) unavailable++;
+    else if (r.res.called === 'd') calledD++;
+    else if (r.res.called === 'r') calledR++;
+    else if (r.res.hasVotes) (r.res.leader === 'd' ? leadD++ : leadR++);
+    else noVotes++;
     return r;
   });
   const holdD = kind === 'senate' ? conf.dHoldovers : 0;
   const holdR = kind === 'senate' ? conf.rHoldovers : 0;
-  return { conf, seats, calledD: calledD + holdD, calledR: calledR + holdR, leadD, leadR, waiting, holdD, holdR, up: keys.length };
+  const up = kind === 'senate' ? conf.up : conf.seats;
+  const securedD = holdD + calledD, securedR = holdR + calledR;
+  return { conf, seats, up, tracked: keys.length, holdD, holdR, calledD, calledR, leadD, leadR, noVotes, unavailable,
+    uncalled: up - calledD - calledR, securedD, securedR, needD: Math.max(0, conf.majority - securedD), needR: Math.max(0, conf.majority - securedR) };
+}
+
+/** Minnesota legislature, computed from civicAPI district races (province MN, State House / State Senate). */
+export function mnChamber(kind) {
+  const type = kind === 'senate' ? 'State Senate' : 'State House';
+  const races = [...data.races.values()].filter((r) => r.province === 'MN' && r.type === type && r.district);
+  let calledD = 0, calledR = 0, leadD = 0, leadR = 0, noVotes = 0;
+  const rows = races.map((race) => {
+    const res = readRace(race, {});
+    if (res.called === 'd') calledD++; else if (res.called === 'r') calledR++;
+    else if (res.hasVotes) (res.leader === 'd' ? leadD++ : leadR++); else noVotes++;
+    return { race, res, name: race.election_name.replace('Minnesota State ', '') };
+  });
+  const seats = kind === 'senate' ? 67 : 134;
+  const majority = kind === 'senate' ? 34 : 68;
+  return { rows, seats, majority, found: races.length, calledD, calledR, leadD, leadR, noVotes,
+    needD: Math.max(0, majority - calledD), needR: Math.max(0, majority - calledR) };
 }
 
 // ---------- chambers (statewide aggregate rows) ----------

@@ -3,12 +3,14 @@ import { esc, fmtMargin, marginClass, hhmm, fmtNightTime, interp } from '../util
 import { house } from '../model.js';
 import { EARLY_HOUSE } from '../data/guide.js';
 import { data } from '../api.js';
+import { houseSwing, SWING_MIN } from '../model.js';
+import { FORECAST_SOURCE } from '../data/houseForecast.js';
+import { HOUSE_META } from '../model.js';
 import { ui } from '../state.js';
 
 const MIN = -26, MAX = 14; // cells are 4 pts wide, centered on R+24 … D+12
 const P = (v) => Math.max(0, Math.min(100, ((v - MIN) / (MAX - MIN)) * 100));
 const TICKS = [-24, -20, -16, -12, -8, -4, 0, 4, 8, 12];
-const HOUSE_MISS_CURVE = { '-10': 195, '-8': 204, '-6': 213, '-4': 219, '-2': 224, 0: 230, 2: 236, 4: 244, 6: 262, 8: 278, 10: 285 };
 const lbl = (m) => fmtMargin(m, { digits: 0 });
 
 function zoneOf(margin, ddhq) {
@@ -18,7 +20,8 @@ function zoneOf(margin, ddhq) {
 }
 
 function rows() {
-  return EARLY_HOUSE.map(([d, dn, rn, inc, close, lateR, m24, ddhq], i) => {
+  return EARLY_HOUSE.map(([d, dn, rn, inc, close0, lateR, m24, ddhq], i) => {
+    const close = HOUSE_META[d]?.close || close0;
     const h = house(d);
     const r = h.res;
     const live = r?.hasVotes ? r.margin : null;
@@ -31,20 +34,20 @@ function summary(list) {
   const rep = list.filter((x) => x.live !== null);
   const n = { worse: 0, within: 0, better: 0 };
   rep.forEach((x) => n[x.zone]++);
-  const wsum = rep.reduce((s, x) => s + Math.max(0.1, x.r.rep / 100), 0);
-  const avg = rep.length ? rep.reduce((s, x) => s + x.miss * Math.max(0.1, x.r.rep / 100), 0) / wsum : null;
+  const solid = rep.filter((x) => x.r.called || x.r.rep >= SWING_MIN.reporting);
+  const med = solid.length ? [...solid.map((x) => x.miss)].sort((p, q) => p - q)[Math.floor(solid.length / 2)] : null;
+  const sw = houseSwing();
   const called = list.filter((x) => x.r?.called);
   const flips = list.filter((x) => x.h.flip);
-  const seats = avg === null ? null : Math.round(interp(HOUSE_MISS_CURVE, avg));
   const W = (k) => (rep.length ? (n[k] / rep.length) * 100 : 0);
   return `<div class="sg-sum">
-    <div class="sg-stat"><span class="lbl">Reporting</span><b>${rep.length}<small>/${list.length}</small></b></div>
-    <div class="sg-stat grow"><span class="lbl">Where the reporting seats sit</span>
-      <div class="sg-mix">${rep.length ? `<i class="worse" style="width:${W('worse')}%">${n.worse || ''}</i><i class="within" style="width:${W('within')}%">${n.within || ''}</i><i class="better" style="width:${W('better')}%">${n.better || ''}</i>` : '<span class="muted small">No votes yet. First seats (KY-06, IN-05) close at 5 PM CT.</span>'}</div>
-      <div class="sg-mix-l"><span>${n.worse} worse</span><span>${n.within} within 3</span><span>${n.better} better</span></div></div>
-    <div class="sg-stat"><span class="lbl">Avg vs DDHQ</span><b class="${avg === null ? '' : avg >= 0 ? 'm-d' : 'm-r'}">${avg === null ? '—' : `${avg >= 0 ? 'D' : 'R'}+${Math.abs(avg).toFixed(1)}`}</b><small class="muted">weighted by % in</small></div>
-    <div class="sg-stat"><span class="lbl">Points to</span><b>${seats === null ? '—' : `~${seats}`}</b><small class="muted">D House seats (forecast 230)</small></div>
-    <div class="sg-stat"><span class="lbl">Called · flips</span><b>${called.length} <small>·</small> <span class="${flips.length ? 'm-d' : ''}">${flips.length}</span></b><small class="muted">${flips.map((x) => x.d).slice(0, 4).join(', ')}</small></div>
+    <div class="sg-stat"><span class="lbl">Reporting</span><b>${rep.length}<small>/${list.length}</small></b><small class="muted">${solid.length} mostly counted (${SWING_MIN.reporting}%+ or called)</small></div>
+    <div class="sg-stat grow"><span class="lbl">Where the reporting seats sit (any % counted)</span>
+      <div class="sg-mix">${rep.length ? `<i class="worse" style="width:${W('worse')}%">${n.worse || ''}</i><i class="within" style="width:${W('within')}%">${n.within || ''}</i><i class="better" style="width:${W('better')}%">${n.better || ''}</i>` : '<span class="muted small">No votes yet. The first two seats (KY-06, IN-05) close at 5 PM CT.</span>'}</div>
+      <div class="sg-mix-l"><span>${n.worse} worse by 3+</span><span>${n.within} within 3</span><span>${n.better} better by 3+</span></div></div>
+    <div class="sg-stat"><span class="lbl">Median vs DDHQ</span><b class="${med === null ? '' : med >= 0 ? 'm-d' : 'm-r'}">${med === null ? '—' : `${med >= 0 ? 'D' : 'R'}+${Math.abs(med).toFixed(1)}`}</b><small class="muted">${solid.length ? `mostly-counted seats on this chart (${solid.length})` : 'needs mostly-counted seats'}</small></div>
+    <div class="sg-stat"><span class="lbl">Uniform-swing scenario <span class="scen-tag">scenario</span></span><b>${sw.enough ? `~${sw.seats}` : '—'}</b><small class="muted">${sw.enough ? `D seats if every district shifted like the ${sw.n} mostly-counted forecast districts nationwide (median)` : `withheld until ${SWING_MIN.districts}+ districts in ${SWING_MIN.states}+ states are mostly counted (now ${sw.n})`}</small></div>
+    <div class="sg-stat"><span class="lbl">Called · potential flips</span><b>${called.length} <small>·</small> <span class="${flips.length ? 'm-d' : ''}">${flips.length}</span></b><small class="muted">${flips.map((x) => x.d).slice(0, 4).join(', ')}</small></div>
   </div>`;
 }
 
@@ -65,7 +68,7 @@ function track(x) {
     ${trail.map((p) => `<i class="tr" style="left:${P(p[2])}%"></i>`).join('')}
     <b class="ddhq" style="left:${P(ddhq)}%" title="DDHQ ${lbl(ddhq)}"></b>
     <b class="c24" style="left:${P(m24)}%" title="2024 presidential ${lbl(m24)}"></b>
-    ${live !== null ? `<b class="lv z-${zone} ${r.called ? 'called' : ''}" style="left:${P(live)}%" title="Live ${fmtMargin(live, { digits: 1 })} · ${r.rep}% in"><em class="${right ? 'l' : ''}">${fmtMargin(live, { digits: 1 })}<small>${r.called ? ' ✓' : ` · ${r.rep}%`}</small></em></b>` : ''}
+    ${live !== null ? `<b class="lv z-${zone} ${r.called ? 'called' : ''}" style="left:${P(live)}%" title="Live ${fmtMargin(live, { digits: 1 })} · ${r.rep}% in"><em class="${right ? 'l' : ''}">${fmtMargin(live, { digits: 1 })}<small>${r.called ? ' ✓ called' : ` · ${r.rep}%`} · ${x.miss >= 0 ? '+' : '−'}${Math.abs(x.miss).toFixed(1)} vs DDHQ</small></em></b>` : ''}
   </div>`;
 }
 
@@ -76,7 +79,7 @@ function status(x) {
   if (r.called) s = `<span class="sg-call c-${r.called}">${r.called === 'd' ? esc(dn) : r.called === 'r' ? esc(rn) : 'Other'} wins</span>`;
   else s = `<span class="sg-zone z-${zone}">${{ worse: 'Worse', within: 'Within 3', better: 'Better' }[zone]}</span>`;
   if (h.flip) s += ` <span class="flip ${r.called ? '' : 'soft'}">${r.called ? 'FLIP' : 'flip?'}</span>`;
-  if (!r.called && lateR && r.rep < 80 && x.miss > -3) s += ' <span class="sg-warn" title="Later votes leaned Republican here in 2022: an early lead can shrink">late R votes still out</span>';
+  if (!r.called && lateR && r.rep < 80 && x.miss > -3) s += ' <span class="sg-warn" title="In 2022, later-counted votes here leaned Republican. A historical pattern, not a guarantee.">2022: late votes leaned R</span>';
   return s;
 }
 
@@ -84,16 +87,20 @@ export function signalsChart({ compact = false } = {}) {
   let list = rows();
   const sort = ui.sgSort || 'guide';
   if (sort === 'close') list = [...list].sort((a, b) => hhmm(a.close) - hhmm(b.close) || a.i - b.i);
-  if (sort === 'miss') list = [...list].sort((a, b) => (b.miss ?? -99) - (a.miss ?? -99));
-  if (sort === 'reporting') list = [...list].sort((a, b) => (b.r?.rep ?? -1) - (a.r?.rep ?? -1));
-  const sorts = [['guide', 'Guide order'], ['close', 'Poll close'], ['miss', 'Vs DDHQ'], ['reporting', '% in']];
+  // Races with no results always sort after races with results, in guide order.
+  const noRes = (x) => (x.live === null ? 1 : 0);
+  if (sort === 'miss') list = [...list].sort((a, b) => noRes(a) - noRes(b) || (b.miss ?? 0) - (a.miss ?? 0) || a.i - b.i);
+  if (sort === 'reporting') list = [...list].sort((a, b) => noRes(a) - noRes(b) || (b.r?.rep ?? 0) - (a.r?.rep ?? 0) || a.i - b.i);
+  const sorts = [['guide', 'Guide order'], ['close', 'Poll close'], ['miss', 'Best for D vs DDHQ'], ['reporting', 'Most counted']];
   return `<section class="card wide sg">
     <div class="sg-title"><h2>Early signals: the first House races</h2>
-      <div class="seg-ctl">${sorts.map(([k, l]) => `<button data-sg-sort="${k}" class="${sort === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="seg-ctl" role="group" aria-label="Sort rows"><span class="seg-lbl">Sort</span>${sorts.map(([k, l]) => `<button data-sg-sort="${k}" class="${sort === k ? 'on' : ''}" aria-pressed="${sort === k}">${l}</button>`).join('')}</div></div>
+    <p class="dek">Are the first-reporting House races coming in better or worse for Democrats than the pre-election forecast?</p>
+    <p class="small muted">These ${list.length} districts close early (5 to 6:30 PM CT) and sit mostly in Florida, Virginia, the Carolinas, Ohio, Kentucky and Indiana, so they are not a national sample. The ±3-point bands are the guide's editorial threshold, not a statistical margin of error. Forecast: DDHQ, ${FORECAST_SOURCE.date}.</p>
     <div class="sg-legend">
       <span><i class="k-ddhq"></i>DDHQ projected margin</span><span><i class="k-c24"></i>2024 presidential result</span>
       <span><i class="k-worse"></i>worse for Democrats than DDHQ by 3+</span><span><i class="k-within"></i>within 3 of DDHQ</span><span><i class="k-better"></i>better for Democrats than DDHQ by 3+</span>
-      <span><i class="k-live"></i>live result · % in</span><span><i class="k-trail"></i>where it's been tonight</span>
+      <span><i class="k-live"></i>live result: margin, % in, and difference from DDHQ</span><span><i class="k-trail"></i>where it's been tonight</span>
     </div>
     ${summary(list)}
     <div class="sg-scroll"><div class="sg-grid">
@@ -115,7 +122,7 @@ export function signalsChart({ compact = false } = {}) {
       </div>`).join('')}
       <div class="sg-row sg-foot"><span></span><span></span><span class="sg-axis">${TICKS.map((t) => `<em style="left:${P(t)}%">${t === 0 ? 'Even' : lbl(t)}</em>`).join('')}</span></div>
     </div></div>
-    ${compact ? '' : `<p class="muted small">Bands are ±3 points around each seat's DDHQ projection. The live dot is colored by the band it's in. The faint dots and line show its path as the count came in. Seats marked "late votes leaned R in 2022" can look bluer early than they finish, and "Points to" uses the guide's House uniform-miss curve.</p>`}
+    ${compact ? '' : `<p class="muted small">The live dot is colored by the band it's in (red = worse by 3+, gray = within 3, blue = better by 3+). Faint dots trace its path as the count came in. A partly counted district can move a lot: "late votes leaned R in 2022" is a historical observation from that year, not a prediction. civicAPI's "% in" is not documented as share of expected vote and may not be comparable across states.</p>`}
   </section>`;
 }
 

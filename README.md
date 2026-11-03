@@ -26,9 +26,25 @@ targets, timing and tells, so you can watch the night unfold race by race.
 - **Tells** get re-checked on every refresh. Some can be checked automatically (NC call timing, Brown vs. 2024, Paxton vs. Abbott, Johnson County, etc.). Others are marked "check by hand".
 - **Calls** are civicAPI's `winner` flags.
 
+## Data files (single sources of truth)
+
+- `js/data/closings.js`: poll-closing times for every state and split-zone district (The Green Papers, checked Nov 3, 2026). Every tab reads these.
+- `js/data/houseForecast.js`: DDHQ district margins from the guide (84 seats within 8 points, p. 29) that drive the House scenario engine (`js/scenario.js`).
+- `js/data/guide.js`: everything else transcribed from the guide.
+- `js/status.js`: the shared status vocabulary (polls open, no votes reported, counting, tied, called, no race, results unavailable, loading, SIM).
+
+The **Methodology** tab documents every source, date and assumption.
+
+## Tests
+
+```sh
+node tests/model.test.mjs                      # calculations: 435-seat reconciliation, ties, third parties, retractions, holdovers, scenario curves, closing times, feed health
+python3 -m http.server 8765 & node tests/ui.test.cjs   # browser: live feed, blocked feed, stale feed, rehearsal scenarios, filters, keyboard, cross-tab consistency
+```
+
 ## Rehearsal mode
 
-Click **Rehearse the night** (or open `?demo`) to run a simulated election night. The fake data has the same shape as civicAPI's, with a random national polling miss, blue/red mirages by state and county-level returns. You can scrub time, change speed, or reshuffle the scenario. Open `?live` to switch back.
+Click **Rehearse the night** (or open `?demo`) to run a simulated election night shaped like civicAPI data. Pick a scenario (random miss, near the forecast, Democratic or Republican overperformance, slow reporting, or a simulated feed outage from 8:20 to 9:10 PM), then scrub time and change speed. Everything simulated is labeled SIM. Open `?live` to switch back.
 
 ## Run locally
 

@@ -351,12 +351,20 @@ export const HOUSE = { majority: 218, forecast: 230, dNow: 215 };
 
 // "How big is the night" markers (page 4) — seat level where each flip points
 export const HOUSE_SIGNALS = [
-  { label: 'VA-2 flips', note: 'Luria beats Kiggans: the small test', seats: 223, seatsLabel: '~223', races: ['VA-02'], mode: 'all' },
-  { label: 'KY-6 flips', note: 'Dembo wins Lexington: 230+', seats: 230, seatsLabel: '230+', races: ['KY-06'], mode: 'all' },
-  { label: 'VA-1 flips', note: 'Taylor beats Wittman: ~235', seats: 235, seatsLabel: '~235', races: ['VA-01'], mode: 'all' },
-  { label: 'Iowa sweep', note: 'All three Iowa House seats', seats: 239, seatsLabel: '~239', races: ['IA-01', 'IA-02', 'IA-03'], mode: 'all' },
-  { label: 'VA-5 flips', note: 'Perriello beats McGuire: ~250', seats: 250, seatsLabel: '~250', races: ['VA-05'], mode: 'all' },
-  { label: 'IN-5, FL-27, NC-9, OH-15', note: 'Any of these: tsunami', seats: 252, seatsLabel: '250+', races: ['IN-05', 'FL-27', 'NC-09', 'OH-15'], mode: 'any' },
+  // guideSeats = the seat level the guide's p. 4 graphic attaches to each result. These are the guide's editorial
+  // illustrations, not model outputs; one district does not determine the national total.
+  { label: 'VA-2', title: 'Luria (D) vs. Kiggans (R, inc.)', guideSeats: 223, guideLabel: '~223', races: ['VA-02'], mode: 'all',
+    why: 'DDHQ favors Luria by 7, so a Democratic win is the expected result. The guide calls it "the small test": a Kiggans hold would be an early warning sign for Democrats.' },
+  { label: 'KY-6', title: 'Dembo (D) vs. Alvarado (R), open', guideSeats: 230, guideLabel: '230+', races: ['KY-06'], mode: 'all',
+    why: 'Open Lexington-area seat DDHQ rates R+3. One of the first House results of the night (polls close 5 PM CT).' },
+  { label: 'VA-1', title: 'Taylor (D) vs. Wittman (R, inc.)', guideSeats: 235, guideLabel: '~235', races: ['VA-01'], mode: 'all',
+    why: 'Trump +5 in 2024, DDHQ R+5. A Democratic win here is the guide\'s marker for wave territory.' },
+  { label: 'Iowa sweep', title: 'IA-1, IA-2 and IA-3', guideSeats: 239, guideLabel: '~239', races: ['IA-01', 'IA-02', 'IA-03'], mode: 'all',
+    why: 'Democrats winning all three competitive Iowa seats (Iowa has four; IA-4 is safely Republican). DDHQ rates them D+7, D+1 and D+4.' },
+  { label: 'VA-5', title: 'Perriello (D) vs. McGuire (R, inc.)', guideSeats: 250, guideLabel: '~250', races: ['VA-05'], mode: 'all',
+    why: 'Trump +12 in 2024, DDHQ R+4. A Democratic win would be a reach-seat result.' },
+  { label: 'Any of IN-5, FL-27, NC-9, OH-15', title: 'Reach seats', guideSeats: 252, guideLabel: '250+', races: ['IN-05', 'FL-27', 'NC-09', 'OH-15'], mode: 'any',
+    why: 'Seats DDHQ rates R+5 to R+8. The guide treats a Democratic win in any one of them as a tsunami-level signal.' },
 ];
 
 // Early signals: the first House races (page 2). [district, D, R, inc('d'|'r'|null), close, lateR, m2024, ddhq]
@@ -587,26 +595,26 @@ export const HOURS = [
   { time: '17:00', label: '5 PM', sub: 'Kentucky, Indiana', closes: 'Most of Kentucky and Indiana', counted: '',
     check: 'KY-06 and IN-05 are the first House reads: a GOP margin of 10+ in KY-06 or 15+ in IN-05 is a red signal.',
     watch: [
-      { title: 'KY-6 · Lexington (open)', refs: ['H:KY-06'], items: [['d', 'Dembo wins: points to 230+ House seats'], ['r', 'Comfortable R hold: a normal year, not a wave']] },
+      { title: 'KY-6 · Lexington (open)', refs: ['H:KY-06'], items: [['d', 'Dembo wins: consistent with the guide\'s 230+ seat scenario'], ['r', 'Comfortable R hold: more consistent with a normal year than a wave']] },
       { title: 'IN-5 · Spartz', refs: ['H:IN-05'], items: [['d', 'Ford near 49 to 50%'], ['r', 'Ford stuck at 45 to 47%']] },
       { title: 'IN-1 · Mrvan', refs: ['H:IN-01'], items: [['d', 'Called fast for Mrvan'], ['r', 'Too close to call early'], ['g', 'Closes 6 PM CT']] },
     ] },
   { time: '18:00', label: '6 PM', sub: 'GA, SC, VA, VT, FL, KY', closes: 'Georgia, Kentucky, South Carolina, Vermont', counted: '',
     check: 'Most of Florida closes and counts fastest: FL-14, FL-25, FL-9 and FL-22 are the first real House reads. VA-01, VA-02, VA-05 close too; Kentucky and Georgia start reporting.',
     watch: [
-      { title: 'VA-2 · Kiggans v Luria', refs: ['H:VA-02'], items: [['d', 'Luria wins: the small test'], ['r', 'Kiggans holds: majority in doubt']] },
-      { title: 'VA-1 · Wittman v Taylor', refs: ['H:VA-01'], items: [['d', 'Taylor wins: wave territory, ~235 seats'], ['g', 'Trump +5; even close is good for D']] },
-      { title: 'VA-5 · McGuire v Perriello', refs: ['H:VA-05'], items: [['d', 'Perriello wins: ~250 seats'], ['g', 'Trump +12']] },
+      { title: 'VA-2 · Kiggans v Luria', refs: ['H:VA-02'], items: [['d', 'Luria wins: passes the small test (DDHQ favors her)'], ['r', 'Kiggans holds: a warning sign for the Democratic majority']] },
+      { title: 'VA-1 · Wittman v Taylor', refs: ['H:VA-01'], items: [['d', 'Taylor wins: consistent with the guide\'s ~235 seat (wave) scenario'], ['g', 'Trump +5 in 2024; even a close race is a good sign for Democrats']] },
+      { title: 'VA-5 · McGuire v Perriello', refs: ['H:VA-05'], items: [['d', 'Perriello wins: consistent with the guide\'s ~250 seat scenario'], ['g', 'Trump +12 in 2024']] },
       { title: 'Florida', refs: ['S:FL:governor', 'H:FL-14', 'H:FL-25'], items: [['d', 'Governor uncalled at 8 PM; FL-14 and FL-25 hold'], ['r', 'GOP wins statewide by 5+; Castor and Moskowitz lose'], ['g', '80%+ counted by 7 PM']] },
-      { title: 'Georgia', refs: ['S:GA:senate', 'S:GA:governor'], items: [['d', 'Ossoff beats his margin'], ['r', 'Jackson called by 9 PM: rules out a wave'], ['g', 'Metro Atlanta counts last']] },
+      { title: 'Georgia', refs: ['S:GA:senate', 'S:GA:governor'], items: [['d', 'Ossoff beats his margin'], ['r', 'Jackson called by 9 PM: a sign against a wave'], ['g', 'Metro Atlanta counts last']] },
       { title: 'South Carolina', refs: ['S:SC:senate', 'H:SC-01', 'H:SC-02'], items: [['d', 'Senate uncalled late'], ['r', 'Called early for Graham'], ['g', 'Tells: SC-1, SC-2']] },
     ] },
   { time: '18:30', label: '6:30 PM', sub: 'North Carolina, Ohio', closes: 'North Carolina, Ohio', counted: '',
-    check: 'OH-01, OH-13, OH-10, NC-01 and NC-11 close. Early and mail votes come first in GA, NC and OH, and later votes leaned R in 2022, so early D margins there will shrink.',
+    check: 'OH-01, OH-13, OH-10, NC-01 and NC-11 close. Early and mail votes are usually counted first in GA, NC and OH. In 2022 the later votes leaned Republican, so early Democratic margins there could shrink if the remaining ballots follow that pattern.',
     watch: [
       { title: 'NC Senate · Cooper v Whatley', refs: ['S:NC:senate'], items: [['d', 'Early, comfortable Cooper call'], ['r', 'Cooper struggling']] },
       { title: 'OH Senate · Brown v Husted', refs: ['S:OH:senate'], items: [['d', 'Brown wins comfortably'], ['r', "Brown trails or it's a coin flip"]] },
-      { title: 'NC and OH House', refs: ['H:NC-01', 'H:NC-11', 'H:OH-07', 'H:OH-09', 'H:OH-15'], items: [['d', 'Davis holds NC-1, Ager flips NC-11, Poindexter beats Miller'], ['r', 'Lose both NC seats; Kaptur on redder lines'], ['g', 'Tells: NC-9, OH-15']] },
+      { title: 'NC and OH House', refs: ['H:NC-01', 'H:NC-11', 'H:OH-07', 'H:OH-09', 'H:NC-09', 'H:OH-15'], items: [['d', 'Davis holds NC-1, Ager flips NC-11, Poindexter beats Miller'], ['r', 'Lose both NC seats; Kaptur on redder lines'], ['g', 'Tells: NC-9, OH-15']] },
     ] },
   { time: '19:00', label: '7 PM', sub: 'TX, MI, ME, KS, PA, NJ, MO, NH', closes: 'Florida, Maine, New Hampshire, Rhode Island', counted: '',
     check: 'Florida counts fast: Palm Beach, Hillsborough, Pinellas and Osceola are the first county benchmarks (see Counties). Kentucky\'s Campbell County too.',
@@ -615,20 +623,20 @@ export const HOURS = [
       { title: 'Michigan Senate', refs: ['S:MI:senate'], items: [['d', 'Called for El-Sayed before 11 PM'], ['r', 'Rogers running ahead of his polls'], ['g', 'Detroit and Wayne late']] },
       { title: 'Maine', refs: ['H:ME-02', 'S:ME:senate'], items: [['d', 'Dunlap close or ahead in ME-2'], ['g', 'Ranked choice can take days']] },
       { title: 'Kansas Senate', refs: ['S:KS:senate'], items: [['d', 'No quick call for Marshall'], ['r', 'Called early for Marshall'], ['g', 'West Kansas closes 8 PM']] },
-      { title: 'Pennsylvania House', refs: ['H:PA-07', 'H:PA-10', 'H:PA-08', 'H:PA-01'], items: [['d', 'PA-7, PA-10 flip; PA-8, PA-1 is a wave'], ['g', 'Also NJ-7, MI-4, MO-2']] },
+      { title: 'Pennsylvania House', refs: ['H:PA-07', 'H:PA-10', 'H:PA-08', 'H:PA-01', 'H:NJ-07', 'H:MI-04', 'H:MO-02'], items: [['d', 'PA-7, PA-10 flip; PA-8, PA-1 is a wave'], ['g', 'Also NJ-7, MI-4, MO-2']] },
     ] },
   { time: '19:30', label: '7:30 PM', sub: 'Arkansas', closes: '', counted: '', check: 'AR-02.', watch: [] },
   { time: '20:00', label: '8 PM', sub: 'IA, NE, MN, WI, AZ, CO, NY', closes: 'Iowa, Kansas, Michigan, Minnesota, Nebraska, Texas, Wisconsin', counted: 'Florida',
     check: 'Florida about 96% counted; read the Florida Senate and governor gap to forecast. Jefferson, Fayette and Boone in Kentucky. Wisconsin, Michigan, Minnesota, Iowa, Kansas, Texas and Nebraska close.',
     watch: [
-      { title: 'Iowa', refs: ['S:IA:senate', 'S:IA:governor', 'H:IA-01', 'H:IA-02', 'H:IA-03'], items: [['d', 'Sweep Senate, governor, all three House seats'], ['r', 'Lose the Senate race: path narrows']] },
-      { title: 'Nebraska, Kansas, Texas', refs: ['S:NE:senate', 'S:KS:senate', 'S:TX:senate'], items: [['d', 'One GOP loss is a very big night; two is historic'], ['g', 'Minnesota close is a warning']] },
-      { title: 'House battlegrounds', refs: ['H:NY-17', 'H:AZ-06', 'H:CO-08', 'H:WI-03', 'H:NE-01', 'H:CO-05', 'H:WI-01'], items: [['d', 'NY-17, AZ-6, CO-8, WI-3, NE-2 flip; CO-5, WI-1 in play'], ['g', 'Arizona takes days']] },
+      { title: 'Iowa', refs: ['S:IA:senate', 'S:IA:governor', 'H:IA-01', 'H:IA-02', 'H:IA-03'], items: [['d', 'Sweep Senate, governor and the three competitive House seats (IA-1, IA-2, IA-3; Iowa\'s fourth seat is safely R)'], ['r', 'Lose the Senate race: the Senate path narrows']] },
+      { title: 'Nebraska, Kansas, Texas', refs: ['S:NE:senate', 'S:KS:senate', 'S:TX:senate'], items: [['d', 'One GOP loss would point to a very big night; two would be historic'], ['g', 'Minnesota close is a warning']] },
+      { title: 'House battlegrounds', refs: ['H:NY-17', 'H:AZ-06', 'H:CO-08', 'H:WI-03', 'H:NE-02', 'H:CO-05', 'H:WI-01'], items: [['d', 'NY-17, AZ-6, CO-8, WI-3, NE-2 flip; CO-5, WI-1 in play'], ['g', 'Arizona takes days']] },
     ] },
   { time: '21:00', label: '9 PM', sub: 'NV, MT, OR, WA, CA', closes: 'Nevada', counted: 'Kentucky',
     check: "Kentucky about 94%. Georgia's Cherokee and Fayette, NC's Buncombe and Onslow, SC's Berkeley and Spartanburg. Nevada closes.",
     watch: [
-      { title: 'The West', refs: ['H:MT-01', 'H:NV-02', 'H:WA-03'], items: [['d', 'MT-1 competitive; NV-3 and WA-3 hold']] },
+      { title: 'The West', refs: ['H:MT-01', 'H:NV-03', 'H:WA-03'], items: [['d', 'MT-1 competitive; NV-3 and WA-3 hold']] },
       { title: 'California', refs: ['H:CA-22'], items: [['g', 'Ballots arriving within 7 days count; calls take weeks']] },
       { title: 'Checkpoint', refs: ['S:IA:governor', 'S:TX:governor', 'S:FL:governor'], items: [['d', 'Iowa, Texas, Florida governor still uncalled'], ['r', 'Georgia, Abbott, Marshall, Hinson all called']] },
     ] },
@@ -637,14 +645,14 @@ export const HOURS = [
   { time: '23:00', label: '11 PM', sub: '', closes: '', counted: 'South Carolina, North Carolina, Ohio',
     check: "Ohio, NC and SC pass 90%. Milwaukee's absentee batch typically lands after this hour. Dane, Waukesha, La Crosse in.", watch: [] },
   { time: '24:00', label: '12 AM', sub: 'Alaska and overnight', closes: 'Alaska', counted: 'Kansas, Texas',
-    check: 'Expect Husted, Rogers and the Wisconsin Republican to lead here even in a close race, before late Democratic votes. Texas and Kansas pass 90%. Alaska closes. Wisconsin about 84%: watch AD-88, AD-61, AD-51 and SD-17.',
+    check: 'In a close race, Husted, Rogers and the Wisconsin Republican could lead at this hour if late Democratic-leaning votes are still out, as in past counts. Texas and Kansas pass 90%. Alaska closes. Wisconsin about 84%: watch AD-88, AD-61, AD-51 and SD-17.',
     watch: [{ title: 'Alaska Senate', refs: ['S:AK:senate'], items: [['g', 'Ranked choice starts Nov 18']] }] },
   { time: '25:00', label: '1 AM', sub: '', closes: '', counted: '',
-    check: 'Paxton may lead with Dallas and Harris Election Day votes still out. Maine and New Hampshire still under 90%. Michigan about 71%.', watch: [] },
+    check: 'Paxton could lead while Dallas and Harris Election Day votes are still out. Maine and New Hampshire still under 90%. Michigan about 71%.', watch: [] },
   { time: '26:00', label: '2 AM+', sub: 'Checkpoint', closes: '', counted: 'Maine (after 1 AM), New Hampshire (after 1 AM)',
     check: 'Wisconsin, Michigan, Minnesota, Iowa, Nebraska finish Wednesday; Nevada Thursday; Oregon Nov. 11; Alaska after Nov. 15. Maine Senate may go to ranked-choice rounds.',
     watch: [
-      { title: '2 AM checkpoint', refs: [], items: [['d', 'Both chambers called'], ['r', "No Senate call: GOP outperforming, or it's AK and ME"]] },
+      { title: '2 AM checkpoint', refs: [], items: [['d', 'Both chambers called'], ['r', 'No Senate call: either the GOP is outperforming, or control hinges on slow-counting AK and ME']] },
       { title: 'Wednesday', refs: [], items: [['g', 'Expect 1 to 2 Senate and about 12 House races uncalled']] },
     ] },
 ];
@@ -652,20 +660,20 @@ export const HOURS = [
 // ---------- Tells to watch (page 5) ----------
 // `auto` names an evaluator in model.js; window is [startHHMM, endHHMM] CT
 export const TELLS = [
-  { when: '6:30 PM', win: ['18:30', '19:15'], sig: 'd', title: 'NC called for Cooper at poll close', means: 'The baseline wave is real', auto: 'ncEarlyCall' },
-  { when: '7 to 8 PM', win: ['19:00', '20:00'], sig: 'r', title: 'Big Graham win in South Carolina', means: 'Republicans came home; polls missed', auto: 'grahamBig' },
-  { when: '7 to 8 PM', win: ['19:00', '20:00'], sig: 'd', title: 'Brown runs 4+ ahead of his 2024 race', means: 'Ohio likely flips', auto: 'brownAhead' },
-  { when: '7 to 9 PM', win: ['19:00', '21:00'], sig: 'd', title: 'Paxton trails Abbott', means: 'Republicans splitting tickets; Texas at risk', auto: 'paxtonTrailsAbbott' },
-  { when: '7 to 9 PM', win: ['19:00', '21:00'], sig: 'r', title: "El-Sayed lags Harris '24 in Detroit", means: 'Democratic trouble in Michigan', auto: 'elSayedWayne' },
+  { when: '6:30 PM', win: ['18:30', '19:15'], sig: 'd', title: 'NC called for Cooper at poll close', means: 'Consistent with the baseline wave in the forecast', auto: 'ncEarlyCall' },
+  { when: '7 to 8 PM', win: ['19:00', '20:00'], sig: 'r', title: 'Big Graham win in South Carolina', means: 'Could mean Republicans came home and polls missed', auto: 'grahamBig' },
+  { when: '7 to 8 PM', win: ['19:00', '20:00'], sig: 'd', title: 'Brown runs 4+ ahead of his 2024 race', means: 'Ohio could flip', auto: 'brownAhead' },
+  { when: '7 to 9 PM', win: ['19:00', '21:00'], sig: 'd', title: 'Paxton trails Abbott', means: 'Suggests ticket-splitting; Texas Senate in play', auto: 'paxtonTrailsAbbott' },
+  { when: '7 to 9 PM', win: ['19:00', '21:00'], sig: 'r', title: "El-Sayed lags Harris '24 in Detroit", means: 'Could signal Democratic trouble in Michigan', auto: 'elSayedWayne' },
   { when: '8 PM', win: ['20:00', '20:30'], sig: 'd', title: 'Florida Senate still uncalled', means: 'A good Democratic night', auto: 'flSenUncalled' },
-  { when: '8 PM', win: ['20:00', '21:00'], sig: 'd', title: "Talarico tops Harris '24 in South Texas", means: 'Texas is in play', auto: 'talaricoSouthTX' },
+  { when: '8 PM', win: ['20:00', '21:00'], sig: 'd', title: "Talarico tops Harris '24 in South Texas (El Paso)", means: 'Texas is in play', auto: 'talaricoSouthTX' },
   { when: '8 to 9 PM', win: ['20:00', '21:00'], sig: 'd', title: 'Florida governor still uncalled', means: 'A very good Democratic night', auto: 'flGovUncalled' },
   { when: '8 to 9 PM', win: ['20:00', '21:00'], sig: 'd', title: 'Hamilton wins Johnson County by 20+', means: 'Kansas is in play', auto: 'hamiltonJohnson' },
-  { when: '9 PM', win: ['21:00', '22:00'], sig: 'd', title: 'Iowa farm-county turnout below 2022', means: 'Farm voters drifting from the GOP', auto: null },
-  { when: 'By 10 PM', win: ['18:00', '22:00'], sig: 'r', title: 'Georgia governor called for Jackson before Atlanta reports', means: 'No wave', auto: 'gaGovEarlyR' },
+  { when: '9 PM', win: ['21:00', '22:00'], sig: 'd', title: 'Iowa farm-county turnout below 2022', means: 'Could mean farm voters are drifting from the GOP', auto: null, manualNote: 'civicAPI reports votes, not turnout against 2022; compare county totals with 2022 by hand.' },
+  { when: 'By 10 PM', win: ['18:00', '22:00'], sig: 'r', title: 'Georgia governor called for Jackson before Atlanta reports', means: 'A sign against a wave', auto: 'gaGovEarlyR' },
   { when: '10 PM', win: ['22:00', '23:00'], sig: 'd', title: 'Abbott uncalled and his lead shrinking', means: 'GOP trouble in Texas', auto: 'abbottUncalled' },
   { when: '2 AM', win: ['26:00', '30:00'], sig: 'r', title: 'Senate control still unresolved', means: 'GOP beat the polls, or Alaska and Maine are pending', auto: 'senateUnresolved' },
-  { when: 'Days', win: ['26:00', '99:00'], sig: 'g', title: 'Maine ranked-choice rounds; Alaska tabulation starts Nov 18', means: 'Either can hold control open', auto: null },
+  { when: 'Days', win: ['26:00', '99:00'], sig: 'g', title: 'Maine ranked-choice rounds; Alaska tabulation starts Nov 18', means: 'Either can hold control open', auto: null, manualNote: 'Ranked-choice rounds are tabulated after election night; watch the state election offices.' },
 ];
 
 // ---------- Wisconsin Legislature (pages 13, 16, 31) ----------
@@ -753,3 +761,14 @@ export const STATE_NAMES = {
   SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington',
   WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
 };
+
+// ---------- Attach the single source of truth for poll closings ----------
+import { STATE_CLOSE, stateClose } from './closings.js';
+for (const [st, s] of Object.entries(STATES)) {
+  const c = stateClose(st);
+  s.close = c.all;
+  s.firstClose = c.most;
+  s.closeNote = c.most === c.all ? `Polls close ${fmtT(c.all)} CT` : `Most polls close ${fmtT(c.most)} CT · all by ${fmtT(c.all)} CT`;
+  s.closeDetail = c.note || '';
+}
+function fmtT(t) { const [h, m] = t.split(':').map(Number); const hh = h % 12 === 0 ? 12 : h % 12; return `${hh}${m ? ':' + String(m).padStart(2, '0') : ''} ${h % 24 >= 12 ? 'PM' : 'AM'}`; }

@@ -21,7 +21,7 @@
       <div class="clock-wrap"><b id="clock">—</b><small id="clock-day">CT</small></div>
       <div class="controls">
         <div id="status" class="status" aria-live="polite"></div>
-        <button id="refresh-btn" class="btn ghost" title="Refresh now" aria-label="Refresh now">↻</button>
+        <button id="refresh-btn" class="btn ghost" title="Refresh results now" aria-label="Refresh results now">↻ Refresh</button>
         <button id="notify-btn" class="btn ghost" title="Browser notifications for calls">Alerts</button>
         <button id="theme-btn" class="btn ghost">Dark</button>
         <button id="mode-btn" class="btn">Rehearse the night</button>
@@ -29,13 +29,15 @@
     </div>
     <div id="demo-bar" class="demo-bar" hidden>
       <span class="demo-tag">Rehearsal</span>
-      <span class="small">Simulated returns shaped like civicAPI data. Nothing here is real.</span>
+      <span class="small"><b>Simulated returns.</b> Nothing here is real, and it does not test live-feed coverage.</span>
       <button id="sim-play" class="btn sm">Pause</button>
       <label class="small">Speed <select id="sim-speed"><option value="1">1×</option><option value="30">30×</option><option value="120" selected>120×</option><option value="300">300×</option><option value="900">900×</option></select></label>
       <input id="sim-t" type="range" min="1010" max="1860" step="1" aria-label="Simulated time" />
       <b id="sim-label" class="small"></b>
       <span id="sim-err" class="small muted"></span>
-      <button id="sim-shuffle" class="btn sm ghost">New scenario</button>
+      <label class="small">Scenario <select id="sim-scenario">
+        <option value="random">Random miss</option><option value="forecast">Near the forecast</option><option value="dem">Democrats outperform (D+4)</option><option value="gop">Republicans outperform (R+4)</option><option value="slow">Slow reporting</option><option value="interrupt">Feed interruption (8:20 to 9:10 PM)</option></select></label>
+      <button id="sim-shuffle" class="btn sm ghost">Reshuffle</button>
     </div>
     <div class="ticker-row"><div id="ticker" class="ticker"></div></div>
     <nav id="tabs" class="tabs" aria-label="Sections"></nav>
@@ -44,7 +46,7 @@
   <main id="view" class="view"></main>
 
   <footer class="foot">
-    <p>Live results from <a href="https://civicapi.org" target="_blank" rel="noopener">civicAPI</a> (refreshes every 30–60 seconds). Forecasts, county targets, timing and tells come from the 2026 Election Night Guide (DDHQ forecasts as of Nov. 1). County "to tie" targets assume uniform swing. Win probabilities are approximate readings of the guide's chart. Calls shown are civicAPI's.</p>
+    <p>Live results and race calls: <a href="https://civicapi.org" target="_blank" rel="noopener">civicAPI</a>, refreshed every 30 to 90 seconds. Forecasts: Decision Desk HQ as printed in the Election Night Guide (Nov. 1, 2026). Poll-closing times: <a href="https://www.thegreenpapers.com/G26/PollingHours.phtml" target="_blank" rel="noopener">The Green Papers</a>. County targets, timing notes and tells: the guide. <a href="#/method">Methodology and sources</a>.</p>
   </footer>
   <div id="toasts" class="toasts" aria-live="polite"></div>
   <script type="module" src="js/app.js"></script>

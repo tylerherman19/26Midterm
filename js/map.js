@@ -5,6 +5,7 @@ import { STATES, SENATE, STATE_NAMES } from './data/guide.js';
 import { readRace, raceById } from './model.js';
 import { esc, fmtMargin, fmtNightTime, hhmm } from './util.js';
 import { ui } from './state.js';
+import { raceStatus, simTag } from './status.js';
 
 // Small northeastern states get a labeled square in a column off the coast.
 const CALLOUTS = ['VT', 'NH', 'MA', 'RI', 'CT', 'NJ', 'DE', 'MD'];
@@ -44,7 +45,8 @@ export function usMap(office) {
   for (const [st, sh] of Object.entries(STATE_SHAPES)) {
     const s = stateStatus(st, office);
     const on = s.kind !== 'none';
-    shapes.push(`<path d="${sh.d}" class="st k-${s.kind} ${sel === st ? 'sel' : ''}" data-map-st="${st}"><title>${esc(STATE_NAMES[st] || st)}</title></path>`);
+    const lab = `${STATE_NAMES[st] || st}: ${on ? ({ 'call-d': 'called Democratic', 'call-r': 'called Republican', 'lead-d': 'Democrat leading', 'lead-r': 'Republican leading', 'fc-d': 'no votes yet, forecast leans D', 'fc-r': 'no votes yet, forecast leans R', 'fc-e': 'no votes yet' }[s.kind]) : 'no race'}`;
+    shapes.push(`<path d="${sh.d}" class="st k-${s.kind} ${sel === st ? 'sel' : ''}" data-map-st="${st}" ${on ? `tabindex="0" role="button" aria-label="${esc(lab)}"` : 'aria-hidden="true"'}><title>${esc(lab)}</title></path>`);
     if (on && !CALLOUTS.includes(st) && st !== 'DC') labels.push(label(st, s, sh.c[0], sh.c[1] + 4, sh.a > 5000));
   }
   const callouts = CALLOUTS.map((st, i) => {
@@ -82,10 +84,10 @@ function detail(office) {
   let status;
   if (r?.called) status = `<b class="m-${r.called === 'r' ? 'r' : 'd'}">${esc(r.called === 'r' ? rn : dn)} wins</b>`;
   else if (r?.hasVotes) status = `<b class="m-${r.margin >= 0 ? 'd' : 'r'}">${fmtMargin(r.margin, { digits: 1, dLabel: s.dLabel })}</b> with ${r.rep}% in`;
-  else status = STATES[st] ? `Polls close ${fmtNightTime(hhmm(STATES[st].firstClose || STATES[st].close))} CT` : 'No votes yet';
+  else status = raceStatus(r, { close: STATES[st]?.close || null, covered: true }).text;
   return `<div class="map-detail">
     <div><b>${esc(name)} ${off}</b><span class="muted">${esc(dn)} (${s.dLabel}) vs. ${esc(rn)} (R)</span></div>
-    <div>${status}${s.f !== undefined ? `<span class="muted"> · forecast ${fmtMargin(s.f, { dLabel: s.dLabel })}</span>` : ''}</div>
+    <div>${status}${simTag()}${s.f !== undefined ? `<span class="muted"> · pre-election forecast ${fmtMargin(s.f, { dLabel: s.dLabel })} (DDHQ)</span>` : ''}</div>
     ${href ? `<a class="more" href="${href}">County benchmarks</a>` : ''}
   </div>`;
 }
@@ -99,8 +101,9 @@ export function mapsCard() {
     <div class="map-legend">
       <span><i class="sw k-call-d"></i>Called D</span><span><i class="sw k-lead-d"></i>Leading D</span>
       <span><i class="sw k-lead-r"></i>Leading R</span><span><i class="sw k-call-r"></i>Called R</span>
-      <span><i class="sw k-fc-d"></i><i class="sw k-fc-r"></i>Forecast lean, no votes yet</span><span><i class="sw k-none"></i>No race</span>
+      <span><i class="sw k-fc-d"></i><i class="sw k-fc-r"></i>No votes yet (shaded by pre-election forecast, not a result)</span><span><i class="sw k-none"></i>No race</span>
     </div>
     ${detail(office)}
+    <p class="note">Leads are not calls. Hatched states have a race but no votes yet; the stripe color shows only DDHQ's pre-election lean.</p>
   </section>`;
 }

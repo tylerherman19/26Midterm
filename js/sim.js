@@ -58,8 +58,11 @@ function callable(margin, rep, closed, finalMargin) {
 }
 
 export class Simulator {
-  constructor({ onData, seed, start = 17 * 60 - 10, speed = 120 } = {}) {
+  constructor({ onData, onInterrupt, scenario = 'random', seed, start = 17 * 60 - 10, speed = 120 } = {}) {
     this.onData = onData;
+    this.onInterrupt = onInterrupt;
+    this.scenario = scenario;
+    this.interrupted = false;
     this.seed = seed ?? Math.floor(Math.random() * 1e9);
     this.t = start;
     this.speed = speed; // time multiplier: 60 = one simulated minute per real second
@@ -70,7 +73,9 @@ export class Simulator {
 
   build() {
     const rng = mulberry(this.seed);
-    this.nationalErr = clamp(gauss(rng) * 3, -6, 6); // + = Democrats beat DDHQ
+    const fixed = { forecast: 0, dem: 4, gop: -4 }[this.scenario];
+    this.nationalErr = fixed !== undefined ? fixed : clamp(gauss(rng) * 3, -6, 6); // + = Democrats beat DDHQ
+    this.paceFactor = this.scenario === 'slow' ? 0.6 : 1;
     this.races = [];
     const add = (o) => this.races.push(o);
 
@@ -170,9 +175,11 @@ export class Simulator {
     let dSen = SENATE.dNotUp, rSen = SENATE.rNotUp, dHouse = 0, rHouse = 0, dGov = 0, rGov = 0;
     for (const race of this.races) {
       const closed = t >= race.close;
-      const rep = race.office === 'house' || race.office === 'wi'
+      let rep = race.office === 'house' || race.office === 'wi'
         ? (t < race.close ? 0 : clamp(Math.round((1 - Math.exp(-(t - race.close) / (90 + Math.abs(race.jitter) * 15))) * 100 + race.jitter), 0, 100))
         : reportingAt(race.st, race.first, t, race.jitter);
+      const rep0 = rep;
+      rep = Math.round(rep0 * this.paceFactor);
       const mirage = (MIRAGE[race.st] || 0) * (1 - rep / 100) * 1.4;
       const margin = rep > 0 ? race.final + mirage : 0;
       const total = Math.round(race.turnout * (rep / 100));
@@ -211,6 +218,9 @@ export class Simulator {
   }
 
   tick(force = false) {
+    const down = this.scenario === 'interrupt' && this.t >= 20 * 60 + 20 && this.t < 21 * 60 + 10;
+    if (down !== this.interrupted) { this.interrupted = down; this.onInterrupt?.(down); }
+    if (down) return; // feed outage: no new data
     const { races, details } = this.snapshot();
     this.onData?.(races, details);
   }

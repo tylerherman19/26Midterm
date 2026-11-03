@@ -41,7 +41,9 @@ export function diffFeed() {
     if (!p) continue; // first sighting: baseline only
     const who = (side) => (side === 'd' ? r.dc?.name : side === 'r' ? r.rc?.name : 'Other');
     const party = (side) => (side === 'd' ? tr.dLabel : side === 'r' ? 'R' : '');
-    if (r.called && !p.called) {
+    if (!r.called && p.called) {
+      fresh.push({ t, kind: 'retract', side: p.called, important: true, href: tr.href, text: `${tr.label}: call withdrawn by the results provider`, sub: r.hasVotes ? `${fmtMargin(r.margin, { digits: 1, dLabel: tr.dLabel })} with ${r.rep}% in` : '' });
+    } else if (r.called && !p.called) {
       const flip = tr.held && r.called !== tr.held && r.called !== 'o';
       fresh.push({ t, kind: 'call', side: r.called, important: tr.key || flip, href: tr.href,
         text: `${tr.label}: ${who(r.called) || ''} (${party(r.called)}) wins${flip ? ', a flip' : ''}`, sub: r.hasVotes ? `${fmtMargin(r.margin, { digits: 1, dLabel: tr.dLabel })} with ${r.rep}% in` : '' });
@@ -58,8 +60,13 @@ export function diffFeed() {
   if (fresh.length) {
     events = [...fresh.reverse(), ...events].slice(0, 250);
     store(`en26-feed-${data.mode}`, events);
-    fresh.filter((e) => e.kind === 'call' && e.important).slice(0, 4).forEach((e) => toastFn?.(e));
+    fresh.forEach((e) => { e.sim = data.mode === 'demo'; });
+    fresh.filter((e) => (e.kind === 'call' || e.kind === 'retract') && e.important).slice(0, 4).forEach((e) => toastFn?.(e));
   }
+}
+
+export function latestImportant(n = 4) {
+  return events.filter((e) => e.kind === 'call' || e.kind === 'lead' || e.kind === 'retract').slice(0, n).map((e) => ({ ...e, time: fmtClock(e.t) }));
 }
 
 export function resetFeed() {
@@ -68,11 +75,11 @@ export function resetFeed() {
 }
 
 export function feedHTML({ limit = 40 } = {}) {
-  if (!events.length) return `<div class="empty">Calls and lead changes in tracked races will stream here as returns come in.</div>`;
+  if (!events.length) return `<div class="empty">Nothing yet. Calls, lead changes and first votes in tracked races will appear here with timestamps once polls close.</div>`;
   return `<ol class="feed">${events.slice(0, limit).map((e) => `
     <li class="fe fe-${e.kind} side-${e.side || 'n'}">
       <time>${fmtClock(e.t)}</time>
       <span class="dot"></span>
-      <div>${e.href ? `<a href="${e.href}">${esc(e.text)}</a>` : esc(e.text)}${e.sub ? `<small>${esc(e.sub)}</small>` : ''}</div>
+      <div>${e.sim ? '<span class="simtag">SIM</span> ' : ''}${e.href ? `<a href="${e.href}">${esc(e.text)}</a>` : esc(e.text)}${e.sub ? `<small>${esc(e.sub)}</small>` : ''}</div>
     </li>`).join('')}</ol>`;
 }
