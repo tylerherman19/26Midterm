@@ -15,7 +15,7 @@ targets, timing and tells, so you can watch the night unfold race by race.
 | **House** | How big is the night (seat scale), early-signal races vs. DDHQ ±3 bands, every seat on its Tide/Wave/Tsunami bar, Red Riptide tests, all 85 watch races with flip flags and filters |
 | **Hour by hour** | The guide's timeline with live chips for every referenced race, auto-scrolls to *now* |
 | **Counties** | The first counties to report vs. "state matches forecast" and "state is tied" targets |
-| **Legislatures** | Wisconsin Senate/Assembly majority math with live seat strips, seats to watch, money; the 18 chambers on page 24 |
+| **Legislatures** | Wisconsin Senate and Assembly results center: majority math, live seat strips, district maps shaded by result (with Milwaukee, Madison and Green Bay close-ups), and a full table of every district's votes and %; seats to watch, money; the 18 chambers on page 24 |
 | **Count pace** | 2024 share counted by hour for 31 states next to tonight's % reporting |
 
 ## How the numbers work

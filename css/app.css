@@ -998,3 +998,69 @@ details.wl-row[open] > summary { background: var(--wash); }
   .ns-bar .band b { white-space: normal; }
 }
 
+
+/* Wisconsin results center */
+.legis > .wi-intro { grid-column: 1 / -1; margin: -6px 0 0; }
+.wi-chamber .wi-strip { margin-top: 4px; }
+.strip-legend { margin: 6px 0 12px; }
+.wi-body { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr); gap: 20px; align-items: start; }
+.wi-maps { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 10px; align-items: start; }
+.wi-insets { display: grid; gap: 8px; }
+.wi-inset { margin: 0; }
+.wi-inset figcaption { font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+.wimap { width: 100%; height: auto; display: block; }
+.wi-inset .wimap { border: 1px solid var(--rule); border-radius: 6px; background: var(--card); }
+.wimap path { stroke: var(--map-stroke); stroke-width: 0.6; vector-effect: non-scaling-stroke; cursor: pointer; fill: var(--map-none); }
+.wimap path:hover, .wimap path:focus-visible { stroke: var(--ink); stroke-width: 1.6; outline: none; }
+.wimap path.watch { stroke: var(--ink-2); stroke-width: 1.1; }
+.wimap path.sel { stroke: var(--ink); stroke-width: 2.6; }
+.wimap .inset-box { fill: none; stroke: var(--muted); stroke-width: 0.8; stroke-dasharray: 3 2; vector-effect: non-scaling-stroke; pointer-events: none; }
+.f-called-d { fill: var(--d); background: var(--d); } .f-called-r { fill: var(--r); background: var(--r); }
+.wimap path.f-called-d { fill: var(--d); } .wimap path.f-called-r { fill: var(--r); }
+.wimap path.f-lead-d { fill: var(--d-2); } .wimap path.f-lead-r { fill: var(--r-2); }
+.wimap path.f-tie, .wimap path.f-lead-o, .wimap path.f-called-o { fill: var(--gold); }
+.wimap path.f-unopp-d { fill: var(--d-soft); } .wimap path.f-unopp-r { fill: var(--r-soft); }
+.wimap path.f-off { fill: var(--card); cursor: default; }
+.wimap path.f-na { fill: var(--map-none); }
+.lg-f { border-radius: 2px; }
+.lg-f.f-called-d { background: var(--d); } .lg-f.f-called-r { background: var(--r); } .lg-f.f-lead-d { background: var(--d-2); } .lg-f.f-lead-r { background: var(--r-2); }
+.lg-f.f-none { background: var(--map-none); border: 1px solid var(--rule); } .lg-f.f-unopp-d { background: linear-gradient(90deg, var(--d-soft) 50%, var(--r-soft) 50%); }
+.lg-f.f-off { background: var(--card); border: 1px solid var(--muted); } .lg-f.watch-k { border: 1.5px solid var(--ink-2); background: var(--map-none); }
+.wi-legend { margin-top: 8px; }
+.wi-side .bal { width: 100%; }
+.wi-detail { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 10px; background: var(--wash); }
+.wi-detail-h { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin-bottom: 8px; }
+.wi-detail-h b { font-size: 15px; } .wi-detail-h .muted { font-size: 12.5px; } .wi-detail-h .btn { margin-left: auto; }
+.wi-bars { display: grid; gap: 6px; }
+.wi-bar { display: grid; grid-template-columns: minmax(140px, 1.2fr) 2fr 56px 72px; gap: 10px; align-items: center; font-size: 13px; }
+.wi-bar .track { height: 12px; background: var(--card); border-radius: 3px; overflow: hidden; border: 1px solid var(--rule); }
+.wi-bar .track i { display: block; height: 100%; } .wi-bar .track i.d { background: var(--d); } .wi-bar .track i.r { background: var(--r); } .wi-bar .track i.o { background: var(--muted); }
+.wi-bar .n { text-align: right; font-variant-numeric: tabular-nums; }
+.win { color: var(--gold); font-weight: 800; }
+.wi-th { margin: 18px 0 6px; font-size: 15px; }
+.wi-tools { justify-content: space-between; }
+.wi-res { width: 100%; border-collapse: collapse; font-size: 13px; }
+.wi-res th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--rule); position: sticky; top: 0; background: var(--card); }
+.wi-res td { padding: 7px 8px; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+.wi-res th.n, .wi-res td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.wi-res tr.sel td { background: color-mix(in srgb, var(--gold) 12%, transparent); }
+.wi-res td small { display: block; color: var(--muted); font-size: 11px; }
+.wi-res .rating { display: inline-block; margin-top: 3px; }
+.wi-res .cand .nm { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+.wi-res .cand .vt { display: block; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wi-res .cand .vt b { color: var(--ink); }
+.linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); cursor: pointer; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 3px; }
+.wi-st { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--wash); white-space: nowrap; }
+.wi-st.f-called-d { background: var(--d); color: #fff; } .wi-st.f-called-r { background: var(--r); color: #fff; }
+.wi-st.f-lead-d { background: var(--d-soft); color: var(--d); } .wi-st.f-lead-r { background: var(--r-soft); color: var(--r); }
+.wi-st.f-unopp-d { color: var(--d); } .wi-st.f-unopp-r { color: var(--r); }
+@media (max-width: 900px) {
+  .wi-body { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .wi-maps { grid-template-columns: 1fr; }
+  .wi-insets { grid-template-columns: repeat(3, 1fr); }
+  .wi-bar { grid-template-columns: 1fr 52px 64px; } .wi-bar .track { grid-column: 1 / -1; grid-row: 2; }
+  .wi-res .cand .nm { font-size: 12.5px; }
+}
+.legis > label.wide { grid-column: 1 / -1; }

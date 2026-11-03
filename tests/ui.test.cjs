@@ -71,6 +71,21 @@ const BASE = process.env.BASE || 'http://localhost:8765';
     check('no rehearsal controls', (await p.locator('#mode-btn, #demo-bar, .simtag').count()) === 0);
     await ctx.close();
   }
+  // Wisconsin legislature results center: maps for both chambers and a full results table
+  {
+    const ctx = await b.newContext({ viewport: { width: 1400, height: 900 } });
+    await ctx.route('**/civicapi.org/**', (r) => r.abort());
+    const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+    await p.goto(`${BASE}/#/legislatures`); await p.waitForSelector('#wi-assembly');
+    check('WI: Senate map has all 33 districts', (await p.locator('#wi-senate .wi-main path').count()) === 33);
+    check('WI: Assembly map has all 99 districts', (await p.locator('#wi-assembly .wi-main path').count()) === 99);
+    check('WI: Senate table lists the 17 seats on the ballot', (await p.locator('#wi-senate .wi-res tbody tr').count()) === 17);
+    check('WI: Assembly table lists all 99 seats', (await p.locator('#wi-assembly .wi-res tbody tr').count()) === 99);
+    await p.click('#wi-assembly button.linkish[data-set="wiSel=AD-88"]');
+    check('WI: picking a district opens its detail', /AD-88/.test(await p.innerText('#wi-assembly .wi-detail')));
+    check('WI: no JS errors', errs.length === 0, errs.join(' | '));
+    await ctx.close();
+  }
   // Responsive navigation and layout with the feed blocked (deterministic, no network).
   for (const width of [375, 1400]) {
     const ctx = await b.newContext({ viewport: { width, height: 850 } });

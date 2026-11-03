@@ -249,7 +249,7 @@ function init() {
   document.addEventListener('pointerup', () => { if (ui.dragging) { ui.dragging = false; if (pendingRender) render(); } });
   // keyboard activation for map states and other role=button SVG elements
   document.addEventListener('keydown', (e) => {
-    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-map-st]')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-map-st], .wimap path[data-set]')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
   });
 
   window.addEventListener('hashchange', render);
