@@ -1,11 +1,10 @@
 // "How big is the night?" Riptide / Tide / Wave / Tsunami centerpiece.
 import { esc, fmtMargin, fmtNightTime, hhmm, marginClass } from '../util.js';
-import { houseTally, houseSwing, houseSignals, house, SWING_MIN } from '../model.js';
-import { houseSeatsAtShift, houseFlipsAtShift, senateSeatsAtShift, houseTier, SHIFT_LIMIT, HOUSE_FORECAST } from '../scenario.js';
-import { FORECAST_SOURCE, SAFE_D, SAFE_R, CLOSE_84 } from '../data/houseForecast.js';
+import { houseTally, houseSwing, houseSignals, SWING_MIN } from '../model.js';
+import { houseSeatsAtShift, HOUSE_FORECAST } from '../scenario.js';
+import { FORECAST_SOURCE } from '../data/houseForecast.js';
 import { feedHealth } from '../api.js';
-import { ui, openAttr } from '../state.js';
-import { TIER_LABEL } from '../ui.js';
+import { openAttr } from '../state.js';
 import { simTag } from '../status.js';
 
 const MIN = 196, MAX = 266;
@@ -47,11 +46,10 @@ function swingSummary(sw) {
   return `<span class="lbl">Swing so far <span class="scen-tag">scenario</span></span><b class="m-${sw.median >= 0 ? 'd' : 'r'}">${fmtShift(Math.round(sw.median * 10) / 10)}</b><small>median vs DDHQ in ${sw.n} districts (${sw.states} states). Applied to every seat: ~${sw.seats} D (middle half of districts: ${Math.min(sw.seatsLo, sw.seatsHi)} to ${Math.max(sw.seatsLo, sw.seatsHi)}).</small>`;
 }
 
-function scale(t, sw, scen, sig) {
+function scale(t, sw, sig) {
   const floorD = t.calledD;
   const marks = [];
   marks.push({ cls: 'fc', at: HOUSE_FORECAST, row: 0, label: `Forecast ${HOUSE_FORECAST}`, sub: 'DDHQ, pre-election' });
-  if (scen !== null && Math.abs(ui.nightShift) > 0.01) marks.push({ cls: 'scen', at: scen, row: 1, label: `Scenario ${fmtShift(ui.nightShift)}: ${scen}`, sub: 'uniform shift' });
   if (sw.enough) marks.push({ cls: 'swing', at: sw.seats, lo: Math.min(sw.seatsLo, sw.seatsHi), hi: Math.max(sw.seatsLo, sw.seatsHi), row: 2, label: `Swing so far: ~${sw.seats}`, sub: `${sw.n} districts` });
   if (floorD > 0) marks.push({ cls: 'called', at: floorD, row: 3, label: floorD < MIN ? `◄ ${floorD} called` : `${floorD} called`, sub: 'a floor, not a forecast' });
   return `<div class="ns" role="img" aria-label="Seat scale from ${MIN} to ${MAX}. 218 is the majority. ${marks.map((m) => m.label).join('. ')}.">
@@ -65,36 +63,9 @@ function scale(t, sw, scen, sig) {
   </div>
   <div class="ns-key">
     <span><i class="k fc"></i>Pre-election forecast</span>
-    <span><i class="k scen"></i>Your scenario</span>
     <span><i class="k swing"></i>Swing so far (needs enough data)</span>
     <span><i class="k called"></i>Seats already called for Democrats</span>
     <span><i class="k pin">1</i>Guide's race markers (illustrative)</span>
-  </div>`;
-}
-
-function explorer() {
-  const s = ui.nightShift;
-  const seats = houseSeatsAtShift(s);
-  const sen = senateSeatsAtShift(s);
-  const tier = houseTier(seats);
-  const f = houseFlipsAtShift(s);
-  const presets = [-5, -3, 0, 3, 5];
-  return `<div class="explorer">
-    <div class="ex-h"><h4>Scenario explorer</h4><span class="scen-tag">scenario, not a prediction</span></div>
-    <p class="small">What if every race ran the same number of points better for one party than DDHQ's forecast?</p>
-    <div class="ex-presets" role="group" aria-label="Preset scenarios">${presets.map((p) => `<button data-night-shift="${p}" class="${Math.abs(s - p) < 0.01 ? 'on' : ''}">${p === 0 ? 'Matches forecast' : `${p < 0 ? 'R' : 'D'} +${Math.abs(p)}`}</button>`).join('')}</div>
-    <label class="ex-slider"><span class="sr-only">Uniform shift in points</span>
-      <input type="range" min="-${SHIFT_LIMIT}" max="${SHIFT_LIMIT}" step="0.5" value="${s}" data-night-slider aria-valuetext="${fmtShift(s)}: ${seats} Democratic seats" />
-      <span class="ex-ends"><span>R +${SHIFT_LIMIT}</span><span>Forecast</span><span>D +${SHIFT_LIMIT}</span></span>
-    </label>
-    <div class="ex-out" id="ex-out">
-      <div><span class="lbl">${esc(fmtShift(s))}</span><b>${seats}</b><small>D House seats · <span class="tier-txt t-${tier}">${TIER_LABEL[tier]}</span></small></div>
-      <div><span class="lbl">Senate, same shift</span><b>${sen}</b><small>D seats incl. 34 not up</small></div>
-      <div class="ex-flips">${f.toD.length || f.toR.length ? `<span class="lbl">Seats that change hands vs forecast</span>
-        ${f.toD.length ? `<span><b class="m-d">To D (${f.toD.length}):</b> ${f.toD.join(', ')}</span>` : ''}
-        ${f.toR.length ? `<span><b class="m-r">To R (${f.toR.length}):</b> ${f.toR.join(', ')}</span>` : ''}` : '<span class="muted small">Every seat goes the way DDHQ forecast.</span>'}</div>
-    </div>
-    <p class="note">Uses DDHQ's margins for the ${CLOSE_84.length} seats within 8 points (guide p. 29), plus ${SAFE_D} safer Democratic and ${SAFE_R} safer Republican seats. It reproduces the guide's own seat curve. Margins are whole points, and real shifts vary by district, candidate and state, so treat the totals as approximate. The slider stops at ±${SHIFT_LIMIT} because beyond that, seats outside the 84-seat list could also flip.</p>
   </div>`;
 }
 
@@ -149,30 +120,19 @@ function howItWorks() {
       <li><b>Categories.</b> The tiers come from the Election Night Guide (pp. 4 and 6): Red Riptide = Republicans keep the House (Democrats under 218); Blue Tide = 218 to 229; Blue Wave = 230 to 239; Blue Tsunami = 240 or more. 218 of 435 is a majority; vacancies don't change who wins seats tonight.</li>
       <li><b>Forecast.</b> Decision Desk HQ's pre-election projection of 230 Democratic seats (${FORECAST_SOURCE.date}), as printed in the guide. It is not updated tonight.</li>
       <li><b>Called seats</b> come from civicAPI's winner flags, summed district by district across all 435 seats. Leads are never counted as calls. If civicAPI withdraws a call, the seat goes back to uncalled.</li>
-      <li><b>Scenario explorer.</b> Adds the same shift to every district's DDHQ margin and counts seats above zero. Even seats count as not won. It reproduces the guide's p. 29 curve exactly, and it's a "what if", not a prediction.</li>
       <li><b>Swing so far</b> uses only districts with a DDHQ margin that are called or at least ${SWING_MIN.reporting}% counted. It takes the median of (live margin minus DDHQ) and applies it through the scenario engine. It stays hidden until ${SWING_MIN.districts} such districts in ${SWING_MIN.states} states exist. Early-reporting districts (Florida, Virginia, the Carolinas, Ohio) are not a random sample, and civicAPI's "% reporting" is not documented as share of expected vote, so read it as a rough reading, not a projection.</li>
       <li><b>Race markers.</b> The numbered pins are the guide's illustrations of what a result would be consistent with. One district never determines the national total.</li>
     </ul></details>`;
-}
-
-/** Partial update while the slider is dragged, so the slider element itself is never replaced. */
-export function updateNightParts() {
-  const wrap = document.getElementById('ns-wrap');
-  if (wrap) { const t = houseTally(), sw = houseSwing(), sig = houseSignals(); wrap.innerHTML = scale(t, sw, Math.abs(ui.nightShift) > 0.01 ? houseSeatsAtShift(ui.nightShift) : null, sig); }
-  const out = document.getElementById('ex-out');
-  if (out) { const tmp = document.createElement('div'); tmp.innerHTML = explorer(); out.innerHTML = tmp.querySelector('#ex-out').innerHTML; }
-  document.querySelectorAll('[data-night-shift]').forEach((b) => b.classList.toggle('on', Math.abs(Number(b.dataset.nightShift) - ui.nightShift) < 0.01));
 }
 
 export function nightCenterpiece({ compact = false } = {}) {
   const t = houseTally();
   const sw = houseSwing();
   const sig = houseSignals();
-  const scen = Math.abs(ui.nightShift) > 0.01 ? houseSeatsAtShift(ui.nightShift) : null;
   return `<section class="card wide night" id="night">
     <div class="night-h"><div><h2>How big is the night?</h2><p class="dek">Democratic House seats on the guide's scale. 218 wins the majority.</p></div>${simTag()}</div>
     ${standings(t, sw)}
-    <div id="ns-wrap">${scale(t, sw, scen, sig)}</div>
-    ${compact ? `<a class="more" href="#/house">Scenario explorer, race markers and method →</a>` : `<div class="night-grid">${explorer()}${examples(sig)}</div>${howItWorks()}`}
+    <div id="ns-wrap">${scale(t, sw, sig)}</div>
+    ${compact ? `<a class="more" href="#/house">Race markers and methodology →</a>` : `${examples(sig)}${howItWorks()}`}
   </section>`;
 }

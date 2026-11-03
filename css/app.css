@@ -856,33 +856,19 @@ body.is-stale .ticker::before { content: 'Data may be out of date'; align-self: 
 .ns-marks .mk b { font-size: 12.5px; font-weight: 800; }
 .ns-marks .mk small { font-size: 11px; color: var(--muted); }
 .mk.fc > i { border-left: 2px dashed var(--ink); } .mk.fc b { color: var(--ink); }
-.mk.scen > i { background: var(--ink-2); } .mk.scen > i::before { content: ''; position: absolute; top: -6px; left: -5px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); background: var(--card); }
 .mk.swing > i { background: var(--gold); width: 4px; } .mk.swing b { color: color-mix(in srgb, var(--gold) 60%, var(--ink)); }
 .mk.called > i { background: var(--d); } .mk.called b { color: var(--d); }
 .ns-key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); padding: 8px 0 4px; border-top: 1px solid var(--rule-2); }
 .ns-key span { display: inline-flex; align-items: center; gap: 6px; }
 .k { display: inline-block; flex: none; }
 .k.fc { width: 0; height: 14px; border-left: 2px dashed var(--ink); }
-.k.scen { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); }
 .k.swing { width: 14px; height: 10px; background: color-mix(in srgb, var(--gold) 55%, transparent); box-shadow: 0 0 0 1.5px var(--gold); border-radius: 2px; }
 .k.called { width: 3px; height: 14px; background: var(--d); }
 .k.pin { width: 18px; height: 18px; font-size: 10px; }
 
-.night-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 22px; margin-top: 12px; }
-.explorer { background: var(--wash); border-radius: 12px; padding: 14px 16px; }
-.ex-h { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
-.ex-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.ex-presets button { border: 1px solid var(--rule); background: var(--card); color: var(--ink); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
-.ex-presets button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.ex-slider input { width: 100%; accent-color: var(--ink); }
-.ex-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
-.ex-out { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
-.ex-out > div { display: flex; flex-direction: column; }
-.ex-out b { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
-.ex-flips { grid-column: 1 / -1; font-size: 12.5px; gap: 2px; }
 .tier-txt { font-weight: 800; }
 .tier-txt.t-riptide { color: var(--riptide); } .tier-txt.t-tide { color: color-mix(in srgb, var(--tide) 45%, var(--ink)); } .tier-txt.t-wave { color: var(--wave); } .tier-txt.t-tsunami { color: var(--tsunami); }
-.examples h4, .explorer h4 { font-size: 16px; }
+.examples h4 { font-size: 16px; }
 .ex-race { border: 1px solid var(--rule); border-radius: 10px; margin: 8px 0; background: var(--card); }
 .ex-race > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 26px auto 1fr; grid-template-areas: 'pin lbl state' 'pin title guide'; gap: 0 8px; padding: 9px 12px; align-items: center; }
 .ex-race > summary::-webkit-details-marker { display: none; }
@@ -925,7 +911,7 @@ details.wl-row[open] > summary { background: var(--wash); }
 .defs dt { font-weight: 700; } .defs dd { margin: 0; color: var(--ink-2); }
 .method code { font-size: 12px; background: var(--wash); padding: 0 4px; border-radius: 3px; }
 
-@media (max-width: 900px) { .night-grid, .m-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .m-grid { grid-template-columns: 1fr; } }
 @media (max-width: 720px) {
   .night { padding: 14px; }
   .night-h h2 { font-size: 24px; }
@@ -939,7 +925,6 @@ details.wl-row[open] > summary { background: var(--wash); }
   .ns-marks .mk > span { top: calc(var(--row) * 22px); }
   .ns-marks .mk > i { height: calc(26px + var(--row) * 22px); }
   .ns-ticks span:nth-child(2), .ns-ticks span:nth-child(6) { display: none; }
-  .ex-out b { font-size: 28px; }
   .rx dl { grid-template-columns: 92px 1fr; }
   details.wl-row > summary { grid-template-columns: 44px 1fr 36px 70px 34px; font-size: 11.5px; }
   .wl-detail { padding-left: 8px; }

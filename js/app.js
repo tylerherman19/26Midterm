@@ -1,7 +1,6 @@
 import { data, onUpdate, startLive, startDemo, setMode, refreshNow, nowNight, setHouseFallbackList, feedHealth, FEEDS } from './api.js';
 import { fmtClock, fmtDayLabel, fmtCountdown, ago, esc, store, fmtNightTime } from './util.js';
 import { senateTally, houseTally, nightMiss, HOUSE_META } from './model.js';
-import { updateNightParts } from './views/night.js';
 import * as method from './views/method.js';
 import { tierChip } from './ui.js';
 import { diffFeed, resetFeed, onToast } from './feed.js';
@@ -217,8 +216,6 @@ function init() {
     if (ms) { ui.mapSel = ui.mapSel === ms.dataset.mapSt ? null : ms.dataset.mapSt; render(); }
     const sg = e.target.closest('[data-sg-sort]');
     if (sg) { ui.sgSort = sg.dataset.sgSort; render(); }
-    const ns = e.target.closest('[data-night-shift]');
-    if (ns) { ui.nightShift = Number(ns.dataset.nightShift); updateNightParts(); const sl = document.querySelector('[data-night-slider]'); if (sl) sl.value = ui.nightShift; }
     const hb = e.target.closest('[data-health]');
     if (hb) { ui.healthOpen = !ui.healthOpen; renderStatus(); }
     else if (ui.healthOpen && !e.target.closest('.health-pop')) { ui.healthOpen = false; renderStatus(); }
@@ -227,7 +224,6 @@ function init() {
   });
   document.addEventListener('input', (e) => {
     const t = e.target;
-    if (t.matches('[data-night-slider]')) { ui.nightShift = Number(t.value); updateNightParts(); }
     if (t.matches('[data-house-query]')) { ui.houseQuery = t.value; renderKeepFocus(t); }
   });
   document.addEventListener('change', (e) => {
