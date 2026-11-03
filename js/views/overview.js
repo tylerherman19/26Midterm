@@ -5,6 +5,7 @@ import { STATES, TELLS, HOURS, CLOSINGS, TILE, SENATE, STATE_NAMES, HOUSE, EARLY
 import { RACE_IDS } from '../data/raceIds.js';
 import { marginTag, tierChip, statusPill, twoWay, seatBar, refChip, TIER_LABEL, sparkMargin } from '../ui.js';
 import { feedHTML } from '../feed.js';
+import { mapsCard } from '../map.js';
 
 export function nowPanel() {
   const t = nowNight();
@@ -78,34 +79,6 @@ export function missCard() {
     <div class="miss-head"><span class="m m-${m.miss >= 0 ? 'd' : 'r'} xl">${m.miss >= 0 ? 'D' : 'R'}+${Math.abs(m.miss).toFixed(1)}</span>
       <span>If every race misses by this much: <b>~${m.senateSeats} Senate</b> and <b>~${m.houseSeats} House</b> Democratic seats <span class="muted">(guide's uniform-miss curves)</span></span></div>
     <div class="miss-rows">${items.map((x) => `<div class="mr"><span class="k">${esc(x.key)}</span><span class="track"><b class="z"></b><i class="${x.miss >= 0 ? 'd' : 'r'}" style="left:${Math.min(P(0), P(x.miss))}%;width:${Math.abs(P(x.miss) - P(0))}%"></i></span><span class="v m-${x.miss >= 0 ? 'd' : 'r'}">${x.miss >= 0 ? '+' : '−'}${Math.abs(x.miss).toFixed(1)}</span></div>`).join('')}</div>`}
-  </section>`;
-}
-
-export function tileMap(office) {
-  const cells = Object.entries(TILE).map(([st, [c, r]]) => {
-    const id = RACE_IDS[office][st];
-    const g = STATES[st]?.races.find((x) => x.office === office);
-    const raw = raceById(id);
-    let cls = 'none', label = '', sub = '';
-    if (raw) {
-      const res = readRace(raw, { d: g?.d, r: g?.r, dSideName: g?.dSideName });
-      const pathF = office === 'senate' ? SENATE.path.find((p) => p[0] === st)?.[1] : g?.forecast;
-      const f = g?.forecast ?? pathF;
-      if (res?.called) { cls = `call-${res.called === 'o' ? 'd' : res.called}`; label = res.called === 'r' ? 'R' : g?.dLabel || 'D'; sub = res.hasVotes ? fmtMargin(res.margin) : 'call'; }
-      else if (res?.hasVotes) { cls = `lead-${res.margin >= 0 ? 'd' : 'r'}`; label = fmtMargin(res.margin, { digits: 0, dLabel: g?.dLabel || 'D' }); sub = `${res.rep}%`; }
-      else { cls = f === undefined ? 'race' : `fc-${f > 0 ? 'd' : f < 0 ? 'r' : 'e'}`; label = f === undefined ? '' : fmtMargin(f, { dLabel: g?.dLabel || 'D' }); sub = STATES[st] ? fmtNightTime(hhmm(STATES[st].close)).replace(':00', '').replace(' ', '').toLowerCase() : ''; }
-      if (g && Math.abs(g.forecast) <= 3) cls += ' close';
-    }
-    const href = STATES[st] ? `#/states/${st}` : '';
-    return `<${href ? 'a href="' + href + '"' : 'div'} class="tile ${cls}" style="grid-column:${c + 1};grid-row:${r + 1}" title="${esc(STATE_NAMES[st])}"><b>${st}</b>${label ? `<span>${esc(label)}</span>` : ''}${sub ? `<small>${esc(sub)}</small>` : ''}</${href ? 'a' : 'div'}>`;
-  }).join('');
-  return `<div class="tilemap">${cells}</div>`;
-}
-
-export function mapsCard() {
-  return `<section class="card maps">
-    <div class="card-h"><h3>The night on a map</h3><div class="legend"><span><i class="lg-call-d"></i>Called D</span><span><i class="lg-lead-d"></i>Leading D</span><span><i class="lg-lead-r"></i>Leading R</span><span><i class="lg-call-r"></i>Called R</span><span><i class="lg-close"></i>Forecast within 3</span></div></div>
-    <div class="maps-grid"><div><h4>Senate</h4>${tileMap('senate')}</div><div><h4>Governor</h4>${tileMap('governor')}</div></div>
   </section>`;
 }
 

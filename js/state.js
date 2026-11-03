@@ -3,4 +3,6 @@ export const ui = {
   focus: null,
   houseFilter: 'all',
   sgSort: 'guide',
+  mapOffice: 'senate',
+  mapSel: null,
 };

@@ -44,7 +44,7 @@ export function diffFeed() {
     if (r.called && !p.called) {
       const flip = tr.held && r.called !== tr.held && r.called !== 'o';
       fresh.push({ t, kind: 'call', side: r.called, important: tr.key || flip, href: tr.href,
-        text: `${tr.label}: ${who(r.called) || ''} (${party(r.called)}) wins${flip ? ' — FLIP' : ''}`, sub: r.hasVotes ? `${fmtMargin(r.margin, { digits: 1, dLabel: tr.dLabel })} with ${r.rep}% in` : '' });
+        text: `${tr.label}: ${who(r.called) || ''} (${party(r.called)}) wins${flip ? ', a flip' : ''}`, sub: r.hasVotes ? `${fmtMargin(r.margin, { digits: 1, dLabel: tr.dLabel })} with ${r.rep}% in` : '' });
     } else if (!r.called && r.hasVotes && p.leader && r.leader && r.leader !== p.leader && r.rep >= 3) {
       fresh.push({ t, kind: 'lead', side: r.leader, important: tr.key, href: tr.href,
         text: `${tr.label}: ${who(r.leader)} takes the lead`, sub: `${fmtMargin(r.margin, { digits: 1, dLabel: tr.dLabel })} with ${r.rep}% in` });

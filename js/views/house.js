@@ -22,10 +22,10 @@ function topPanel() {
       <b class="maj" style="left:${P(218)}%"><em>218</em></b>
       <b class="fc" style="left:${P(HOUSE.forecast)}%"></b>
       ${proj !== null ? `<b class="live" style="left:${P(proj)}%"></b>` : ''}
-      ${sig.map((s, i) => `<b class="sigm sgn-${s.state}${P(s.seats) > 70 ? ' flipx' : ''}" style="left:${P(s.seats)}%;--row:${i % 3}" title="${esc(s.note)}"><em>${esc(s.label)}${s.state === 'hit' ? ' ✓' : s.state === 'miss' ? ' ✗' : ''}</em></b>`).join('')}
+      ${sig.map((s, i) => `<b class="sigm sgn-${s.state}" style="left:${P(s.seats)}%;--row:${i % 2}" title="${esc(s.label)}: ${esc(s.note)}"><em>${i + 1}</em></b>`).join('')}
     </div>
     <div class="ticks">${[210, 215, 220, 225, 230, 235, 240, 245, 250, 255].map((v) => `<span style="left:${P(v)}%">${v}</span>`).join('')}</div>
-    <div class="bs-key"><span><i class="k-fc"></i>DDHQ forecast: 230</span>${proj !== null ? `<span><i class="k-sw"></i>Results so far point to <b>~${proj}</b></span>` : '<span class="muted">Gold marker appears once seats are mostly counted</span>'}<span><i class="k-sg"></i>Flip signals (cards below)</span></div>
+    <div class="bs-key"><span><i class="k-fc"></i>DDHQ forecast: 230</span>${proj !== null ? `<span><i class="k-sw"></i>Results so far point to <b>~${proj}</b></span>` : '<span class="muted">Gold marker appears once seats are mostly counted</span>'}<span><i class="k-pin">1</i>Seat level each numbered flip below points to</span></div>
     <div class="house-score">
       <div><span class="lbl">Called</span><b class="d">D ${h.calledD}</b> · <b class="r">R ${h.calledR}</b></div>
       <div><span class="lbl">Leading (uncalled)</span><b class="d">D ${h.leadD}</b> · <b class="r">R ${h.leadR}</b></div>
@@ -33,7 +33,8 @@ function topPanel() {
       <div><span class="lbl">Called + leading</span><b class="d">D ${h.calledD + h.leadD}</b> · <b class="r">R ${h.calledR + h.leadR}</b></div>
     </div>
     ${seatBar({ total: 435, calledD: h.calledD, leadD: h.leadD, calledR: h.calledR, leadR: h.leadR, majority: 218, markers: [{ at: 230, short: '230', label: 'forecast' }] })}
-    <div class="signals">${sig.map((s) => `<div class="sgn sgn-${s.state}"><b>${esc(s.label)}</b><span>${esc(s.note)}</span><div class="chips">${s.rs.map((r) => chip(r)).join('')}</div></div>`).join('')}</div>
+    <div class="sb-legend"><span><i class="d1"></i>Called D</span><span><i class="d2"></i>Leading D</span><span><i class="u"></i>No votes / uncalled</span><span><i class="r2"></i>Leading R</span><span><i class="r1"></i>Called R</span><span><i class="k-maj"></i>218 majority</span><span><i class="k-fc"></i>230 forecast</span></div>
+    <div class="signals">${sig.map((s, i) => `<div class="sgn sgn-${s.state}"><b><i class="k-pin">${i + 1}</i>${esc(s.label)} <small class="muted">${esc(s.seatsLabel)} seats</small></b><span>${esc(s.note)}</span><div class="chips">${s.rs.map((r) => chip(r)).join('')}</div></div>`).join('')}</div>
     <div class="riptide-tests"><span class="lbl">Red Riptide tests</span>${riptideTests().map((t) => `<div class="rt sgn-${t.state}"><b>${t.label}</b><span>${esc(t.text)}</span><em>GOP won ${t.gopWon}${t.gopLead ? ` · leads ${t.gopLead}` : ''} of ${t.of}</em></div>`).join('')}</div>
   </section>`;
 }

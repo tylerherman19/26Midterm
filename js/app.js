@@ -160,6 +160,10 @@ function init() {
   document.addEventListener('click', (e) => {
     const f = e.target.closest('[data-house-filter]');
     if (f) { ui.houseFilter = f.dataset.houseFilter; render(); }
+    const mo = e.target.closest('[data-map-office]');
+    if (mo) { ui.mapOffice = mo.dataset.mapOffice; render(); }
+    const ms = e.target.closest('[data-map-st]');
+    if (ms) { ui.mapSel = ui.mapSel === ms.dataset.mapSt ? null : ms.dataset.mapSt; render(); }
     const sg = e.target.closest('[data-sg-sort]');
     if (sg) { ui.sgSort = sg.dataset.sgSort; render(); }
   });
