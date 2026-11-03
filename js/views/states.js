@@ -1,26 +1,23 @@
-import { esc, fmtMargin, fmtPct, fmtInt, hhmm, fmtNightTime, marginClass } from '../util.js';
+import { esc, fmtMargin, fmtPct, hhmm, fmtNightTime, marginClass } from '../util.js';
 import { ui, openAttr } from '../state.js';
 import { statewide, senateStateTier, texasChecks, house } from '../model.js';
 import { STATES, SENATE_TIER_BARS, SENATE_TIER_NOTES, TEXAS, HOUSE_TIER_SEATS } from '../data/guide.js';
 import { marginTag, tierChip, statusPill, twoWay, tierBar, paceChart, legendPace, pos, refChip, sparkMargin } from '../ui.js';
 import { nowNight } from '../api.js';
 
-const ORDER = Object.keys(STATES).sort((a, b) => hhmm(STATES[a].firstClose) - hhmm(STATES[b].firstClose) || STATES[a].name.localeCompare(STATES[b].name));
+const ORDER = Object.keys(STATES).sort((a, b) => STATES[a].name.localeCompare(STATES[b].name));
 
 function stateNav(active) {
   const office = ui.stateOffice || '';
-  const choices = ORDER.filter((st) => st === active || !office || STATES[st].races.some((r) => r.office === office));
-  return `<div class="state-pick"><label class="mobile-only"><span class="lbl">Office</span> <select data-state-office aria-label="Choose an office">
-    ${[['', 'All races'], ['senate', 'Senate'], ['governor', 'Governor']].map(([key, name]) => `<option value="${key}" ${key === office ? 'selected' : ''}>${name}</option>`).join('')}
-  </select></label> <label><span class="lbl">Jump to state</span> <select data-state-jump aria-label="Choose a state">${choices.map((st) => `<option value="${st}" ${st === active ? 'selected' : ''}>${esc(STATES[st].name)} (${STATES[st].races.map((r) => (r.office === 'senate' ? 'Sen' : 'Gov')).join(', ')}) · ${fmtNightTime(hhmm(STATES[st].firstClose))}</option>`).join('')}</select></label></div>
-  <nav class="state-nav" aria-label="States">${ORDER.map((st) => {
-    const s = STATES[st];
-    const reads = s.races.map((r) => statewide(st, r.office).res);
-    const anyCall = reads.some((r) => r?.called);
-    const anyVotes = reads.some((r) => r?.hasVotes);
-    const m = reads[0]?.hasVotes ? reads[0].margin : null;
-    return `<a href="#/states/${st}" class="sn ${st === active ? 'on' : ''} ${anyCall ? 'has-call' : anyVotes ? 'has-votes' : ''}"><b>${st}</b><small>${m !== null ? fmtMargin(m, { dLabel: s.races[0].dLabel || 'D' }) : fmtNightTime(hhmm(s.firstClose || s.close)).replace(':00', '')}</small></a>`;
-  }).join('')}</nav>`;
+  const choices = ORDER.filter((st) => !office || STATES[st].races.some((r) => r.office === office));
+  return `<div class="state-pick">
+    <label><span class="lbl">Office</span><select data-state-office aria-label="Choose an office">
+      ${[['', 'All offices'], ['senate', 'Senate'], ['governor', 'Governor']].map(([key, name]) => `<option value="${key}" ${key === office ? 'selected' : ''}>${name}</option>`).join('')}
+    </select></label>
+    <label><span class="lbl">State</span><select data-state-jump aria-label="Choose a state">
+      ${choices.map((st) => `<option value="${st}" ${st === active ? 'selected' : ''}>${esc(STATES[st].name)}</option>`).join('')}
+    </select></label>
+  </div>`;
 }
 
 function raceBlock(st, office) {
@@ -33,22 +30,30 @@ function raceBlock(st, office) {
   const tier = office === 'senate' ? senateStateTier(st, liveForTier) : null;
   const breaks = office === 'senate' ? SENATE_TIER_BARS[st] : null;
   const range = breaks ? [Math.min(-20, breaks[0] - 6), Math.max(20, breaks[2] + 6)] : null;
-  return `<div class="race-block office-${office}">
+  const margin = res?.hasVotes ? marginTag(res.margin, { dLabel: dl }) : '—';
+  return `<div class="race-block">
     <div class="rb-h">
-      <div><span class="eyebrow">${office === 'senate' ? 'Senate' : 'Governor'}</span>
-      <h3>${esc(g.d)} (${dl}) vs. ${esc(g.r)} (R) ${g.inc ? `<span class="inc">${g.inc === 'd' ? g.d : g.r} inc.</span>` : g.open ? '<span class="open">open</span>' : ''}</h3></div>
-      ${statusPill(res, { dLabel: dl, closeAt: s.close, dName: g.d, rName: g.r })}
+      <h3>${office === 'senate' ? 'U.S. Senate' : 'Governor'}</h3>
+      <div>${statusPill(res, { dLabel: dl, closeAt: s.close, dName, rName, compact: !res?.called })}</div>
     </div>
+    <dl class="state-margins">
+      <div><dt>Current margin</dt><dd>${margin}</dd></div>
+      <div><dt>DDHQ forecast</dt><dd>${marginTag(g.forecast, { digits: 0, dLabel: dl })}</dd></div>
+    </dl>
     ${twoWay(res, { dName, rName, dLabel: dl })}
-    <div class="kpis">
-      <div class="lv"><span>Live margin</span><b>${res?.hasVotes ? marginTag(res.margin, { dLabel: dl }) : '—'}</b>${res?.hasVotes ? `<small>${res.called ? 'called' : 'not called'} · ${fmtInt(res.total)} votes</small>` : ''}${sparkMargin(sw.id)}</div>
-      <div class="lv"><span>Reporting</span><b>${res ? fmtPct(res.rep) : '—'}</b><small>civicAPI % reporting</small></div>
-      <div class="fc"><span>Pre-election forecast</span><b>${marginTag(g.forecast, { digits: 0, dLabel: dl })}</b><small>DDHQ, Nov. 1${g.winProb ? ` · ≈${g.winProb}% ${dl} win (approx.)` : ''}</small></div>
-      <div class="est"><span>County-benchmark estimate</span><b>${bench?.estimate ? marginTag(bench.estimate.value, { dLabel: dl }) : '—'}</b>${bench?.estimate ? `<small>scenario from ${bench.estimate.n} of ${bench.estimate.of} guide counties (${bench.estimate.sharePct}% of the 2024 vote); least-counted ${bench.estimate.minRep}% in</small>` : bench ? '<small>needs 2+ guide counties reporting</small>' : '<small>no county targets in the guide</small>'}</div>
-      <div><span>2024 president</span><b>${marginTag(s.pres2024, { digits: 0 })}</b></div>
-    </div>
-    ${breaks ? `<div class="tier-row"><span class="lbl">What it would mean for the Senate (guide p. 5) ${tier ? `${tierChip(tier)}${res?.called ? '' : ' <small class="muted">based on the current margin or estimate, so far</small>'}` : ''}${SENATE_TIER_NOTES[st] ? ` <small class="muted">${SENATE_TIER_NOTES[st]}</small>` : ''}</span>
-      ${tierBar(breaks, { min: range[0], max: range[1], forecast: g.forecast, live: liveForTier, dLabel: dl })}</div>` : ''}
+    <details class="state-race-details" ${openAttr(`race-detail-${st}-${office}`)}><summary>Race analysis</summary>
+      <dl class="state-margins">
+        <div><dt>Reporting</dt><dd>${res ? fmtPct(res.rep) : '—'}</dd></div>
+        <div><dt>2024 president</dt><dd>${marginTag(s.pres2024, { digits: 0 })}</dd></div>
+        ${bench?.estimate ? `<div><dt>County-based estimate</dt><dd>${marginTag(bench.estimate.value, { dLabel: dl })}</dd></div>` : ''}
+      </dl>
+      ${bench?.estimate ? `<p class="small">Scenario using ${bench.estimate.n} of ${bench.estimate.of} guide counties, representing ${bench.estimate.sharePct}% of the 2024 vote. Least-counted county: ${bench.estimate.minRep}% reporting.</p>` : ''}
+      ${g.winProb ? `<p class="small">DDHQ pre-election win probability: ${g.winProb}% ${dl}.</p>` : ''}
+      ${sparkMargin(sw.id)}
+      ${breaks ? `<div class="tier-row"><span class="lbl">Senate implications ${tier ? tierChip(tier) : ''}</span>
+        <p class="small">${res?.called ? '' : 'Based on the current margin or estimate. '}${esc(SENATE_TIER_NOTES[st] || '')}</p>
+        ${tierBar(breaks, { min: range[0], max: range[1], forecast: g.forecast, live: liveForTier, dLabel: dl })}</div>` : ''}
+    </details>
   </div>`;
 }
 
@@ -153,14 +158,15 @@ export function render(params) {
   const s = STATES[st] || STATES.GA;
   const key = STATES[st] ? st : 'GA';
   if (ui.stateOffice && !s.races.some((r) => r.office === ui.stateOffice)) ui.stateOffice = '';
-  const primaryId = statewide(key, s.races[0].office).id;
+  const visibleRaces = s.races.filter((r) => !ui.stateOffice || r.office === ui.stateOffice);
+  const primaryId = statewide(key, visibleRaces[0].office).id;
   return `${stateNav(key)}
-  <div class="grid state-page selected-${ui.stateOffice || 'all'}">
+  <div class="grid state-page">
     <section class="card wide state-card">
       <div class="state-h"><h2>${esc(s.name)}</h2><span class="close-note">${esc(s.closeNote)}${s.closeDetail ? `<small>${esc(s.closeDetail)} Statewide calls generally wait for the last close.</small>` : ''}</span></div>
-      <div class="race-blocks">${s.races.map((r) => raceBlock(key, r.office)).join('')}</div>
-      <details ${openAttr('state-house-' + key)}><summary>House races in ${esc(s.name)}</summary>${houseInState(key)}</details>
+      <div class="race-blocks">${visibleRaces.map((r) => raceBlock(key, r.office)).join('')}</div>
     </section>
+    <details class="card wide" ${openAttr('state-house-' + key)}><summary>House races in ${esc(s.name)}</summary>${houseInState(key)}</details>
     <details class="card wide" ${openAttr('state-context-' + key)}><summary>County benchmarks and counting patterns</summary>
     <section class="card wide"><div class="card-h"><h3>County benchmarks</h3>${benchToggle(key)}</div>${benchIntro(key)}${countyTable(key)}</section>
     <section class="card"><div class="card-h"><h3>Count by hour</h3>${legendPace()}</div>
