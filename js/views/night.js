@@ -93,7 +93,7 @@ function raceRow(h) {
 }
 
 function examples(sig) {
-  return `<div class="examples"><h4>Race markers</h4>
+  return `<div class="examples">
     <p class="small">The guide pins these races to seat levels to illustrate what a Democratic win would be <em>consistent with</em>. No single district decides the national total.</p>
     ${sig.map((s, i) => {
       const flipAt = s.rs.map((h) => h.meta.ddhq).filter((x) => x !== null && x !== undefined);
@@ -133,6 +133,6 @@ export function nightCenterpiece({ compact = false } = {}) {
     <div class="night-h"><div><h2>How big is the night?</h2><p class="dek">Democratic House seats on the guide's scale. 218 wins the majority.</p></div>${simTag()}</div>
     ${standings(t, sw)}
     <div id="ns-wrap">${scale(t, sw, sig)}</div>
-    ${compact ? `<a class="more" href="#/house">Race markers and methodology →</a>` : `${examples(sig)}${howItWorks()}`}
+    ${compact ? `<a class="more" href="#/house">Race markers and methodology →</a>` : `<details ${openAttr('night-races')}><summary>Race markers</summary>${examples(sig)}</details>${howItWorks()}`}
   </section>`;
 }

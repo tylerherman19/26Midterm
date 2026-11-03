@@ -1,5 +1,5 @@
 import { esc, fmtMargin, fmtPct, fmtInt, hhmm, fmtNightTime, marginClass } from '../util.js';
-import { ui } from '../state.js';
+import { ui, openAttr } from '../state.js';
 import { statewide, senateStateTier, texasChecks, house } from '../model.js';
 import { STATES, SENATE_TIER_BARS, SENATE_TIER_NOTES, TEXAS, HOUSE_TIER_SEATS } from '../data/guide.js';
 import { marginTag, tierChip, statusPill, twoWay, tierBar, paceChart, legendPace, pos, refChip, sparkMargin } from '../ui.js';
@@ -8,7 +8,11 @@ import { nowNight } from '../api.js';
 const ORDER = Object.keys(STATES).sort((a, b) => hhmm(STATES[a].firstClose) - hhmm(STATES[b].firstClose) || STATES[a].name.localeCompare(STATES[b].name));
 
 function stateNav(active) {
-  return `<div class="state-pick"><label><span class="lbl">Jump to state</span> <select data-state-jump aria-label="Choose a state">${ORDER.map((st) => `<option value="${st}" ${st === active ? 'selected' : ''}>${esc(STATES[st].name)} (${STATES[st].races.map((r) => (r.office === 'senate' ? 'Sen' : 'Gov')).join(', ')}) · ${fmtNightTime(hhmm(STATES[st].firstClose))}</option>`).join('')}</select></label></div>
+  const office = ui.stateOffice || '';
+  const choices = ORDER.filter((st) => st === active || !office || STATES[st].races.some((r) => r.office === office));
+  return `<div class="state-pick"><label class="mobile-only"><span class="lbl">Office</span> <select data-state-office aria-label="Choose an office">
+    ${[['', 'All races'], ['senate', 'Senate'], ['governor', 'Governor']].map(([key, name]) => `<option value="${key}" ${key === office ? 'selected' : ''}>${name}</option>`).join('')}
+  </select></label> <label><span class="lbl">Jump to state</span> <select data-state-jump aria-label="Choose a state">${choices.map((st) => `<option value="${st}" ${st === active ? 'selected' : ''}>${esc(STATES[st].name)} (${STATES[st].races.map((r) => (r.office === 'senate' ? 'Sen' : 'Gov')).join(', ')}) · ${fmtNightTime(hhmm(STATES[st].firstClose))}</option>`).join('')}</select></label></div>
   <nav class="state-nav" aria-label="States">${ORDER.map((st) => {
     const s = STATES[st];
     const reads = s.races.map((r) => statewide(st, r.office).res);
@@ -29,7 +33,7 @@ function raceBlock(st, office) {
   const tier = office === 'senate' ? senateStateTier(st, liveForTier) : null;
   const breaks = office === 'senate' ? SENATE_TIER_BARS[st] : null;
   const range = breaks ? [Math.min(-20, breaks[0] - 6), Math.max(20, breaks[2] + 6)] : null;
-  return `<div class="race-block">
+  return `<div class="race-block office-${office}">
     <div class="rb-h">
       <div><span class="eyebrow">${office === 'senate' ? 'Senate' : 'Governor'}</span>
       <h3>${esc(g.d)} (${dl}) vs. ${esc(g.r)} (R) ${g.inc ? `<span class="inc">${g.inc === 'd' ? g.d : g.r} inc.</span>` : g.open ? '<span class="open">open</span>' : ''}</h3></div>
@@ -148,14 +152,16 @@ export function render(params) {
   const st = (params.st || 'GA').toUpperCase();
   const s = STATES[st] || STATES.GA;
   const key = STATES[st] ? st : 'GA';
+  if (ui.stateOffice && !s.races.some((r) => r.office === ui.stateOffice)) ui.stateOffice = '';
   const primaryId = statewide(key, s.races[0].office).id;
   return `${stateNav(key)}
-  <div class="grid state-page">
+  <div class="grid state-page selected-${ui.stateOffice || 'all'}">
     <section class="card wide state-card">
       <div class="state-h"><h2>${esc(s.name)}</h2><span class="close-note">${esc(s.closeNote)}${s.closeDetail ? `<small>${esc(s.closeDetail)} Statewide calls generally wait for the last close.</small>` : ''}</span></div>
       <div class="race-blocks">${s.races.map((r) => raceBlock(key, r.office)).join('')}</div>
-      ${houseInState(key)}
+      <details ${openAttr('state-house-' + key)}><summary>House races in ${esc(s.name)}</summary>${houseInState(key)}</details>
     </section>
+    <details class="card wide" ${openAttr('state-context-' + key)}><summary>County benchmarks and counting patterns</summary>
     <section class="card wide"><div class="card-h"><h3>County benchmarks</h3>${benchToggle(key)}</div>${benchIntro(key)}${countyTable(key)}</section>
     <section class="card"><div class="card-h"><h3>Count by hour</h3>${legendPace()}</div>
       ${paceChart(key, primaryId, { w: 420, h: 150 })}
@@ -165,5 +171,6 @@ export function render(params) {
     ${s.howItLooks ? `<section class="card"><div class="card-h"><h3>${esc(s.howItLooks.title)}</h3><span class="muted">a possible pattern from past counts, not a guarantee</span></div>
       <div class="steps vertical">${s.howItLooks.steps.map(([a, b]) => `<div><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('')}</div></section>` : ''}
     ${key === 'TX' ? texasPanel() : ''}
+    </details>
   </div>`;
 }

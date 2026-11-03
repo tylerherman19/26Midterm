@@ -2,6 +2,7 @@ import { esc, hhmm, fmtNightTime } from '../util.js';
 import { nowNight } from '../api.js';
 import { HOURS, CLOSINGS, WHO_COUNTS, STATES, PACE } from '../data/guide.js';
 import { CALL_NOTE } from '../data/closings.js';
+import { openAttr } from '../state.js';
 import { refChip } from '../ui.js';
 import { tellsCard, closingSchedule } from './overview.js';
 
@@ -23,7 +24,8 @@ export function render() {
         const passed90 = start >= 19 * 60 && start <= 25 * 60 ? PACE.filter(([, , hrs]) => hrs && hrs[(start / 60) - 19] >= 90 && (start / 60 - 19 === 0 || hrs[(start / 60) - 20] < 90)).map(([, name]) => name) : [];
         const caveats = h.watch.flatMap((w) => w.items.filter(([sig]) => sig === 'g').map(([, txt]) => `${w.title}: ${txt}`));
         return `<li class="tl ${phase}" ${phase === 'now' ? 'id="tl-now"' : ''}>
-          <div class="tl-time"><b>${esc(h.label)}</b>${phase === 'now' ? '<span class="now-tag">NOW</span>' : phase === 'next' ? '<span class="next-tag">NEXT</span>' : ''}</div>
+          <details ${openAttr('hour-' + h.time)} ${phase === 'now' || phase === 'next' ? 'open' : ''}>
+          <summary class="tl-time"><b>${esc(h.label)}</b>${phase === 'now' ? '<span class="now-tag">NOW</span>' : phase === 'next' ? '<span class="next-tag">NEXT</span>' : ''}</summary>
           <div class="tl-body">
             <div class="tl-sec"><span class="lbl">Polls closing</span>
               ${states.length || houseDs.length ? `<div class="chips">${states.map((x) => `<a class="chip strong" href="#/states/${x.st}">${esc(STATES[x.st].name)} <span class="muted">${x.part === 'most' ? 'most polls' : x.part === 'rest' ? 'last polls' : 'all polls'}${x.time !== h.time ? ` ${fmtNightTime(hhmm(x.time))}` : ''}</span></a>`).join('')}</div>
@@ -41,6 +43,7 @@ export function render() {
               </div>`).join('')}</div></div>` : ''}
             ${caveats.length ? `<div class="tl-sec"><span class="lbl">Caveats</span>${caveats.map((c) => `<div class="sig sig-g"><i></i>${esc(c)}</div>`).join('')}</div>` : ''}
           </div>
+          </details>
         </li>`;
       }).join('')}</ol>
     </section>

@@ -114,7 +114,7 @@ i { font-style: normal; } /* <i> is only used for drawn shapes */
 .card-h .muted { font-size: 12px; }
 .overview .now { grid-column: span 4; }
 .overview .control { grid-column: span 4; }
-.overview .maps { grid-column: span 7; }
+.overview .maps { grid-column: 1 / -1; }
 .overview .miss { grid-column: span 5; }
 .overview .tells { grid-column: span 7; }
 .overview .feed-card { grid-column: span 5; }
@@ -981,4 +981,48 @@ details.wl-row[open] > summary { background: var(--wash); }
 @media (max-width: 720px) {
   .early-c th:nth-child(2), .early-c td:nth-child(2), .early-c th:nth-child(3), .early-c td:nth-child(3), .early-c th:nth-child(5), .early-c td:nth-child(5), .early-c th:nth-child(9), .early-c td:nth-child(9) { display: none; }
   .early-c tr.grp td { font-size: 11px; }
+}
+
+.desktop-tabs { display: flex; gap: 2px; }
+.mobile-tabs, .mobile-subnav, .early-mobile, .mobile-only { display: none; }
+.more-links { display: grid; gap: 12px; }
+.card > summary { cursor: pointer; font-weight: 700; }
+.card > details > summary { cursor: pointer; }
+.tl { display: block; }
+.tl > details > summary { cursor: pointer; }
+.tl > details[open] > .tl-body { margin-top: 10px; }
+
+@media (max-width: 720px) {
+  .desktop-tabs, .early-desktop, .county-desktop, .pace-desktop,
+  .state-nav, .state-page.selected-senate .office-governor,
+  .state-page.selected-governor .office-senate { display: none; }
+  .mobile-only, .early-mobile { display: block; }
+  .mobile-tabs, .mobile-subnav { display: flex; gap: 4px; }
+  .mobile-tabs { justify-content: space-between; width: 100%; }
+  .tabs .mobile-tabs a { padding: 10px 3px; font-size: 12px; }
+  .mobile-subnav { margin-bottom: 12px; }
+  .mobile-subnav a { padding: 8px 12px; border-radius: 6px; }
+  .mobile-subnav a[aria-current] { background: var(--wash); font-weight: 700; }
+  .overview-feed .fe:nth-child(n + 4) { display: none; }
+  .early-title, .early-labels, .county-values { display: flex; justify-content: space-between; gap: 8px; }
+  .early-title { align-items: center; }
+  .early-title select { max-width: 50%; }
+  .early-labels { color: var(--muted); font-size: 12px; }
+  .early-race { border-top: 1px solid var(--rule); }
+  .early-race > summary { cursor: pointer; padding: 12px 0; list-style: none; }
+  .early-race > summary::-webkit-details-marker { display: none; }
+  .early-race > summary::after { content: '＋'; color: var(--muted); display: block; text-align: right; margin-top: -1em; }
+  .early-race[open] > summary::after { content: '−'; }
+  .early-track { position: relative; height: 5px; margin: 12px 6px 8px; border-radius: 4px; background: var(--rule); }
+  .early-track i { position: absolute; top: 50%; transform: translate(-50%, -50%); }
+  .early-track .even { width: 2px; height: 16px; background: var(--muted); }
+  .early-track .forecast, .early-track .live { width: 11px; height: 11px; border: 2px solid var(--ink); border-radius: 50%; background: var(--card); }
+  .early-track .live { background: var(--ink); }
+  .early-track .forecast:has(+ .live) { top: -3px; }
+  .county-values { margin-top: 6px; font-size: 12px; padding-right: 14px; }
+  .county-values b { display: block; }
+  .pace-mobile-chart { display: block; max-width: 100%; width: 360px; margin-top: 12px; }
+  .state-pick .mobile-only { display: inline-block; margin-right: 8px; }
+  .ns-bar .band { overflow: hidden; }
+  .ns-bar .band b { white-space: normal; }
 }

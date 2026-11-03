@@ -3,7 +3,7 @@ import { benchmarks } from '../model.js';
 import { STATES, EARLY_COUNTIES } from '../data/guide.js';
 import { marginTag } from '../ui.js';
 import { nowNight } from '../api.js';
-import { ui } from '../state.js';
+import { ui, openAttr } from '../state.js';
 
 // Turn the guide's "in by" strings into a sortable time (night minutes); non-clock values sort last.
 function inByMinutes(s) {
@@ -24,7 +24,7 @@ function read(row) {
   return base + tie + partial;
 }
 
-function rowsFor(list) {
+function rowsFor(list, mobile = false) {
   return list.map(({ st, name }) => {
     const s = STATES[st];
     const office = ui.countyOffice && s.races.some((r) => r.office === ui.countyOffice) ? ui.countyOffice : s.races[0].office;
@@ -32,6 +32,19 @@ function rowsFor(list) {
     const row = benchmarks(st, office)?.rows.find((r) => r.name === name);
     if (!row) return '';
     const dl = g.dLabel || 'D';
+    if (mobile) {
+      const diff = row.live === null ? null : row.live - row.ifForecast;
+      return `<details class="early-race" ${openAttr(`county-${st}-${esc(name)}`)}>
+        <summary><b>${esc(name)}, ${st}</b><div class="county-values">
+          <span>Live <b>${row.live === null ? '—' : marginTag(row.live, { dLabel: dl })}</b></span>
+          <span>Target <b>${marginTag(row.ifForecast, { dLabel: dl })}</b></span>
+          <span>Difference <b>${diff === null ? '—' : fmtMargin(diff, { dLabel: dl, digits: 1 })}</b></span>
+        </div></summary>
+        <p>${office === 'senate' ? 'Senate' : 'Governor'} · ${row.rep == null ? 'No reporting percentage' : `${row.rep}% reporting`} · 2024 timing ${esc(row.inBy)} CT</p>
+        <p>2024 margin ${fmtMargin(row.m2024)} · Tie target ${fmtMargin(row.toTie, { dLabel: dl })}</p>
+        ${read(row)} <a href="#/states/${st}">Open ${esc(s.name)} →</a>
+      </details>`;
+    }
     return `<tr>
       <td><a href="#/states/${st}"><b>${esc(name)}</b></a>${row.tag ? ` <small class="tag">${esc(row.tag)}</small>` : ''}<small class="cty-st">${esc(s.name)}</small></td>
       <td>${office === 'senate' ? 'Senate' : 'Governor'} <span class="muted">DDHQ</span> ${marginTag(g.forecast, { digits: 0, dLabel: dl })}${office !== s.races[0].office ? ' <small class="muted">(targets set on Senate)</small>' : ''}</td>
@@ -71,11 +84,12 @@ export function render() {
       <div class="card-h"><h3>County benchmarks</h3>
         <div class="wl-tools"><label><span class="sr-only">State</span><select data-ui="countyState"><option value="">All states</option>${withCounties.map(([st, s]) => `<option value="${st}" ${st === stf ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
         <div class="seg-ctl" role="group" aria-label="Race"><span class="seg-lbl">Race</span>${[['', 'Default'], ['senate', 'Senate'], ['governor', 'Governor']].map(([k, l]) => `<button data-set="countyOffice=${k}" class="${(ui.countyOffice || '') === k ? 'on' : ''}" aria-pressed="${(ui.countyOffice || '') === k}">${l}</button>`).join('')}</div></div></div>
-      <div class="bench-intro small">
+      <details class="bench-intro small" ${openAttr('county-guide')}><summary>How county targets work</summary>
         <p><b>These are scenario benchmarks, not predictions of county results.</b> "If the state is tied" is the county margin consistent with an even statewide race, under a uniform swing from 2024 (the guide's targets). "If the state matches the forecast" adds DDHQ's statewide margin to that. <b>Example:</b> Palm Beach's tie target is D+15 and Florida's Senate forecast is R+6, so a forecast-consistent Palm Beach is D+15 − 6 = D+9. If Palm Beach comes in at D+12, it is running 3 points ahead of the forecast scenario.</p>
         <p>"Vs forecast" = live minus the forecast-consistent result. A county that has counted only part of its vote may not look like its final result, so rows under 60% counted are flagged. "Expected by" is the guide's reading of when each county was mostly counted in 2024, not a promise. Targets are set on the guide's first race for each state (usually Senate); for governor they are approximate.</p>
-      </div>
-      <div class="tscroll"><table class="early-c"><thead>${head}</thead><tbody>
+      </details>
+      <div class="mobile-only">${groups.map((g) => `<h4>${esc(g.label)}</h4>${rowsFor(g.rows, true)}`).join('')}</div>
+      <div class="tscroll county-desktop"><table class="early-c"><thead>${head}</thead><tbody>
         ${groups.map((g) => `<tr class="grp ${g.time && t >= hhmm(g.time) ? 'due' : ''}"><td colspan="10">${esc(g.label)}${g.time && t >= hhmm(g.time) ? ' <span class="pill pill-count">due now</span>' : ''}</td></tr>${rowsFor(g.rows)}`).join('') || '<tr><td colspan="10" class="empty">No counties match.</td></tr>'}
       </tbody></table></div>
     </section>

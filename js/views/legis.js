@@ -2,7 +2,7 @@ import { esc, fmtMargin, hhmm, fmtNightTime } from '../util.js';
 import { wiChamber, wiDistrict, chamberByName, mnChamber } from '../model.js';
 import { WI_LEG, LEGISLATURES } from '../data/guide.js';
 import { marginTag } from '../ui.js';
-import { ui } from '../state.js';
+import { ui, openAttr } from '../state.js';
 import { feedHealth } from '../api.js';
 import { simTag } from '../status.js';
 
@@ -146,7 +146,12 @@ function money() {
 export function render() {
   const S = WI_LEG.senate, A = WI_LEG.assembly;
   const cs = wiChamber('senate'), ca = wiChamber('assembly');
+  const region = ui.legRegion || 'WI';
   return `<div class="grid legis">
+    <label class="wide"><span class="lbl">Legislature</span> <select data-ui="legRegion" aria-label="Choose a legislature">
+      ${[['WI', 'Wisconsin'], ['MN', 'Minnesota'], ['all', 'All states']].map(([key, name]) => `<option value="${key}" ${key === region ? 'selected' : ''}>${name}</option>`).join('')}
+    </select></label>
+    ${region === 'MN' ? minnesota() : region === 'all' ? legislatures() : `
     <section class="card wide">
       <div class="card-h"><h3>Wisconsin Legislature: majority math</h3><span class="muted">polls close 8 PM CT · Milwaukee and Brown counties often finish Wednesday (guide)</span></div>
       <div class="wi-two">
@@ -163,8 +168,6 @@ export function render() {
     </section>
     <section class="card wide"><div class="card-h"><h3>Wisconsin Senate: seats to watch</h3></div>${seatsTable(S.watch)}<p class="small muted">${RATING_SRC} Fundraising as printed in the guide; reporting periods are given only where noted, and no filing source is cited.</p></section>
     <section class="card wide"><div class="card-h"><h3>Wisconsin Assembly: seats to watch</h3></div>${seatsTable(A.watch, { asm: true })}</section>
-    ${minnesota()}
-    ${money()}
-    ${legislatures()}
+    <details class="card wide" ${openAttr('leg-money')}><summary>Wisconsin outside spending</summary>${money()}</details>`}
   </div>`;
 }

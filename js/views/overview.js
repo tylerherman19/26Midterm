@@ -7,6 +7,7 @@ import { districtClose, stateClose } from '../data/closings.js';
 import { HOUSE_META } from '../model.js';
 import { marginTag, tierChip, statusPill, twoWay, seatBar, refChip, TIER_LABEL, sparkMargin } from '../ui.js';
 import { feedHTML, latestImportant } from '../feed.js';
+import { openAttr } from '../state.js';
 import { mapsCard } from '../map.js';
 import { nightCenterpiece } from './night.js';
 import { senateSeatsAtShift } from '../scenario.js';
@@ -130,13 +131,13 @@ function tellState(ev) {
 
 export function render() {
   return `<div class="grid overview">
-    ${nowPanel()}
-    ${senateCard()}
-    <section class="card feed-card"><div class="card-h"><h3>Latest developments</h3><span class="muted">calls, lead changes, big counts</span></div>${feedHTML({ limit: 14 })}</section>
     ${nightCenterpiece({ compact: true })}
     ${mapsCard()}
-    ${missCard()}
-    ${racesGrid()}
-    ${tellsCard()}
+    ${senateCard()}
+    <section class="card feed-card overview-feed"><div class="card-h"><h3>Latest developments</h3><span class="muted">calls, lead changes, big counts</span></div>${feedHTML({ limit: 14 })}</section>
+    ${nowPanel()}
+    <details class="card wide overview-extra" ${openAttr('overview-extra')}><summary>More races and analysis</summary>
+      <div class="grid">${missCard()}${racesGrid()}${tellsCard()}</div>
+    </details>
   </div>`;
 }
