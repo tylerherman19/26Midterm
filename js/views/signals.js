@@ -84,20 +84,27 @@ function status(x) {
 }
 
 function mobileRace(x) {
-  const values = [0, x.ddhq, x.live ?? x.ddhq];
-  const lo = Math.min(...values) - 4, hi = Math.max(...values) + 4;
-  const at = (v) => 100 * (v - lo) / (hi - lo);
-  const delta = x.miss === null ? '' : Math.abs(x.miss) < 0.05 ? 'Matches DDHQ'
-    : `${Math.abs(x.miss).toFixed(1)} points toward ${x.miss > 0 ? 'Democrats' : 'Republicans'} vs DDHQ`;
+  const max = Math.max(6, Math.abs(x.ddhq), Math.abs(x.live ?? 0));
+  const party = (margin) => margin > 0 ? 'Democrats' : 'Republicans';
+  const delta = x.miss === null ? '' : Math.abs(x.miss) < 0.05 ? 'In line with the forecast'
+    : `${Math.abs(x.miss).toFixed(1)} points better for ${party(x.miss)} than forecast`;
+  const current = x.live === null ? 'No votes reported'
+    : Math.abs(x.live) < 0.05 ? 'Even so far'
+    : `${party(x.live)} lead by ${Math.abs(x.live).toFixed(1)}`;
+  const bar = (label, margin, kind) => {
+    const width = Math.abs(margin ?? 0) / max * 46;
+    return `<span class="early-bar-row"><span>${label}</span>
+      <span class="early-track" aria-hidden="true"><i class="${kind} m-${marginClass(margin)}" style="left:${margin < 0 ? 50 - width : 50}%;width:${width}%"></i></span>
+      <b>${margin === null ? '—' : fmtMargin(margin, { digits: kind === 'current' ? 1 : 0 })}</b></span>`;
+  };
   return `<details class="early-race" id="mobile-h-${x.d}" ${openAttr('early-' + x.d)}>
-    <summary><div class="early-title"><b>${x.d}</b><b>${x.live === null ? '—' : fmtMargin(x.live, { digits: 1 })}</b></div>
-      <div class="early-track" aria-hidden="true">
-        <i class="even" style="left:${at(0)}%"></i><i class="forecast" style="left:${at(x.ddhq)}%"></i>
-        ${x.live === null ? '' : `<i class="live" style="left:${at(x.live)}%"></i>`}
-      </div>
-      <div class="early-labels"><span>DDHQ ${lbl(x.ddhq)}</span><span>Even line</span></div>
-      <div>${x.r?.called ? status(x) : x.live !== null ? `Uncalled · ${x.r.rep}% reporting` : `Polls close ${fmtNightTime(hhmm(x.close))} CT`}</div>
-      ${delta ? `<small>${delta}</small>` : ''}
+    <summary><span class="early-title"><b>${x.d}</b><b>${current}</b></span>
+      <span class="early-race-status">${x.r?.called ? status(x) : x.live !== null ? `Uncalled · ${x.r.rep}% reporting` : `Polls close ${fmtNightTime(hhmm(x.close))} CT`}</span>
+      ${delta ? `<span class="early-comparison">${delta}</span>` : ''}
+      <span class="early-bars">
+        ${bar('DDHQ forecast', x.ddhq, 'forecast')}
+        ${x.live === null ? '' : bar(x.r.called ? 'Latest count' : 'Current count', x.live, 'current')}
+      </span>
     </summary>
     <p>${esc(x.dn)} (D) vs. ${esc(x.rn)} (R) · 2024 president ${lbl(x.m24)}</p>
     ${x.hist.length > 1 && x.live !== null ? `<p>First reported ${fmtMargin(x.hist[0][2], { digits: 1 })} → now ${fmtMargin(x.live, { digits: 1 })}</p>` : ''}
@@ -119,8 +126,9 @@ export function signalsChart({ compact = false } = {}) {
       <div class="early-title"><h2>Early House</h2><select data-ui="sgSort" aria-label="Sort early House races">${sorts.map(([k, label]) =>
         `<option value="${k}" ${sort === k ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
       <p>${list.filter((x) => x.live !== null).length} of ${list.length} races reporting</p>
+      <p class="early-guide">Bars start at even. Republican margins go left, Democratic margins go right.</p>
       ${list.map(mobileRace).join('')}
-      <details ${openAttr('early-guide')}><summary>How to read this</summary><p>The hollow dot is the DDHQ forecast. The solid dot is the latest margin. The vertical line marks an even race. Early districts are geographically clustered. Partial returns can change substantially, and civicAPI reporting percentages may measure different things across states.</p></details>
+      <details ${openAttr('early-guide')}><summary>How to read this</summary><p>Each race compares the pre-election DDHQ margin with the current count on the same scale. The center line marks an even race. Early districts are geographically clustered. Partial returns can change substantially, and civicAPI reporting percentages may measure different things across states.</p></details>
     </div>
     <div class="early-desktop"><div class="sg-title"><h2>Early signals: the first House races</h2>
       <div class="seg-ctl" role="group" aria-label="Sort rows"><span class="seg-lbl">Sort</span>${sorts.map(([k, l]) => `<button data-sg-sort="${k}" class="${sort === k ? 'on' : ''}" aria-pressed="${sort === k}">${l}</button>`).join('')}</div></div>
