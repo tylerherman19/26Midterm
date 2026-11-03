@@ -420,12 +420,18 @@ export const RED_RIPTIDE_TESTS = [
 
 // All 85 House races to watch, by poll close (page 20). [district, D, R, inc ('d'|'r'|null=open), lean2024 (+ = Harris)]
 export const HOUSE_WATCH = [
+  { time: '17:00', label: '5:00 PM CT', races: [
+    ['IN-05', 'Ford', 'Spartz', 'r', -17], ['KY-06', 'Dembo', 'Alvarado', null, -15]] },
   { time: '18:00', label: '6:00 PM CT', races: [
+    ['FL-04', 'Holloway', 'Bean', 'r', -12], ['FL-07', 'Dalton', 'Elijah', null, -12], ['FL-08', 'Jenkins', 'Haridopolos', 'r', -16],
+    ['FL-09', 'Soto', 'Green', 'd', -18], ['FL-11', 'Pericola', 'Strada', null, -16], ['FL-12', 'Overman', 'Bilirakis', 'r', -15],
+    ['FL-13', 'Gray', 'Luna', 'r', -13], ['FL-14', 'Castor', 'Beltran', 'd', -10], ['FL-16', 'Kirschner', 'Gruters', null, -14],
+    ['FL-18', 'Gibson', 'Franklin', 'r', -17], ['FL-21', 'Martin', 'Mast', 'r', -16], ['FL-22', 'Dandiya', 'Askar', null, -10],
+    ['FL-25', 'Moskowitz', 'Singer', 'd', -9], ['FL-26', 'Locklin', 'Diaz-Balart', 'r', -18], ['FL-27', 'Rodriguez', 'Salazar', 'r', -15],
     ['GA-01', 'Hollowell', 'Kingston', null, -16], ['GA-07', 'Kozycki', 'McCormick', 'r', -22], ['GA-10', 'DeLancy', 'Gaines', null, -21],
     ['GA-11', 'Harden', 'Cowan', null, -23], ['GA-12', 'Smith', 'Allen', 'r', -14], ['IN-01', 'Mrvan', 'Regnitz', 'd', 0],
-    ['IN-05', 'Ford', 'Spartz', 'r', -17], ['KY-06', 'Dembo', 'Alvarado', null, -15], ['SC-01', 'Lacore', 'Honeycutt', null, -13],
-    ['SC-02', 'Khalifa', 'Wilson', 'r', -14], ['SC-05', 'Dittmer', 'Climer', null, -23], ['VA-01', 'Taylor', 'Wittman', 'r', -5],
-    ['VA-02', 'Luria', 'Kiggans', 'r', 0], ['VA-05', 'Perriello', 'McGuire', 'r', -12]] },
+    ['SC-01', 'Lacore', 'Honeycutt', null, -13], ['SC-02', 'Khalifa', 'Wilson', 'r', -14], ['SC-05', 'Dittmer', 'Climer', null, -23],
+    ['VA-01', 'Taylor', 'Wittman', 'r', -5], ['VA-02', 'Luria', 'Kiggans', 'r', 0], ['VA-05', 'Perriello', 'McGuire', 'r', -12]] },
   { time: '18:30', label: '6:30 PM CT', races: [
     ['NC-01', 'Davis', 'Buckhout', 'd', -12], ['NC-03', 'Smith', 'Murphy', 'r', -14], ['NC-05', 'Hubbard', 'Foxx', 'r', -18],
     ['NC-06', 'Jefferson', 'McDowell', 'r', -17], ['NC-07', 'Hardy', 'Rouzer', 'r', -14], ['NC-08', 'Watson', 'Harris', 'r', -19],
@@ -434,27 +440,27 @@ export const HOUSE_WATCH = [
     ['OH-07', 'Poindexter', 'Miller', 'r', -11], ['OH-08', 'Enoch', 'Davidson', 'r', -16], ['OH-09', 'Kaptur', 'Merrin', 'd', -11],
     ['OH-10', 'Knickerbocker', 'Turner', 'r', -8], ['OH-13', 'Sykes', 'Coleman', 'd', 3], ['OH-15', 'Leonard', 'Carey', 'r', -10]] },
   { time: '19:00', label: '7:00 PM CT', races: [
-    ['AL-02', 'Figures', 'Marques', 'd', -14], ['FL-02', 'Green', 'Rogers', null, -18], ['FL-04', 'Holloway', 'Bean', 'r', -12],
-    ['FL-07', 'Dalton', 'Elijah', null, -12], ['FL-08', 'Jenkins', 'Haridopolos', 'r', -16], ['FL-09', 'Soto', 'Green', 'd', -18],
-    ['FL-11', 'Pericola', 'Strada', null, -16], ['FL-12', 'Overman', 'Bilirakis', 'r', -15], ['FL-13', 'Gray', 'Luna', 'r', -13],
-    ['FL-14', 'Castor', 'Beltran', 'd', -10], ['FL-16', 'Kirschner', 'Gruters', null, -14], ['FL-18', 'Gibson', 'Franklin', 'r', -17],
-    ['FL-21', 'Martin', 'Mast', 'r', -16], ['FL-22', 'Dandiya', 'Askar', null, -10], ['FL-25', 'Moskowitz', 'Singer', 'd', -9],
-    ['FL-26', 'Locklin', 'Diaz-Balart', 'r', -18], ['FL-27', 'Rodriguez', 'Salazar', 'r', -15], ['ME-02', 'Dunlap', 'LePage', null, -9],
+    ['AL-02', 'Figures', 'Marques', 'd', -14], ['FL-02', 'Green', 'Rogers', null, -18], ['ME-02', 'Dunlap', 'LePage', null, -9],
+    ['MI-04', 'McCann', 'Huizenga', 'r', -6], ['MI-07', 'Lawrence', 'Barrett', 'r', -1], ['MI-10', 'Hines', 'Bouchard', null, -7],
     ['MO-02', 'Wellman', 'Wagner', 'r', -8], ['NJ-07', 'Bennett', 'Kean', 'r', -1], ['PA-01', 'Harvie', 'Fitzpatrick', 'r', 0],
-    ['PA-07', 'Brooks', 'Mackenzie', 'r', -3], ['PA-08', 'Cognetti', 'Bresnahan', 'r', -8], ['PA-10', 'Stelson', 'Perry', 'r', -5]] },
-  { time: '19:30', label: '7:30 PM CT', races: [['AR-02', 'Jones', 'Hill', 'r', -16]] },
+    ['PA-07', 'Brooks', 'Mackenzie', 'r', -3], ['PA-08', 'Cognetti', 'Bresnahan', 'r', -8], ['PA-10', 'Stelson', 'Perry', 'r', -5],
+    ['TX-09', 'Gutierrez', 'Mealer', null, -20], ['TX-15', 'Pulido', 'De La Cruz', 'r', -18], ['TX-34', 'Gonzalez', 'Flores', 'd', -10],
+    ['TX-35', 'Garcia', 'De La Cruz', null, -10]] },
+  { time: '19:30', label: '7:30 PM CT', races: [
+    ['AR-02', 'Jones', 'Hill', 'r', -16]] },
   { time: '20:00', label: '8:00 PM CT', races: [
     ['AZ-01', 'Shah', 'Feely', null, -3], ['AZ-02', 'Nez', 'Crane', 'r', -15], ['AZ-06', 'Mendoza', 'Ciscomani', 'r', -1],
     ['CO-03', 'Romero', 'Hurd', 'r', -10], ['CO-04', 'Laubacher', 'Boebert', 'r', -18], ['CO-05', 'Killin', 'Crank', 'r', -9],
     ['CO-08', 'Rutinel', 'Evans', 'r', -2], ['IA-02', 'James', 'Mitchell', null, -10], ['IA-03', 'Garriott', 'Nunn', 'r', -4],
-    ['MI-04', 'McCann', 'Huizenga', 'r', -6], ['MI-07', 'Lawrence', 'Barrett', 'r', -1], ['MI-10', 'Hines', 'Bouchard', null, -7],
     ['MN-01', 'Johnson', 'Finstad', 'r', -12], ['NE-01', 'Backemeyer', 'Flood', 'r', -13], ['NY-01', 'Gallant', 'LaLota', 'r', -10],
-    ['NY-17', 'Conley', 'Lawler', 'r', 1], ['NY-21', 'Gendebien', 'Constantino', null, -21], ['TX-09', 'Gutierrez', 'Mealer', null, -20],
-    ['TX-15', 'Pulido', 'De La Cruz', 'r', -18], ['TX-23', 'Stout', 'Herrera', null, -15], ['TX-34', 'Gonzalez', 'Flores', 'd', -10],
-    ['TX-35', 'Garcia', 'De La Cruz', null, -10], ['WI-01', 'Berman', 'Steil', 'r', -5], ['WI-03', 'Cooke', 'Van Orden', 'r', -7]] },
-  { time: '21:00', label: '9:00 PM CT', races: [['MT-01', 'Forstag', 'Flint', null, -12], ['NV-02', 'Benitez-Thompson', 'Flippo', null, -14]] },
-  { time: '22:00', label: '10:00 PM CT', races: [['WA-03', 'Perez', 'Braun', 'd', -3]] },
-  { time: '24:00', label: '12:00 AM CT', races: [['AK-AL', 'Hafner', 'Begich', 'r', -13]] },
+    ['NY-17', 'Conley', 'Lawler', 'r', 1], ['NY-21', 'Gendebien', 'Constantino', null, -21], ['TX-23', 'Stout', 'Herrera', null, -15],
+    ['WI-01', 'Berman', 'Steil', 'r', -5], ['WI-03', 'Cooke', 'Van Orden', 'r', -7]] },
+  { time: '21:00', label: '9:00 PM CT', races: [
+    ['MT-01', 'Forstag', 'Flint', null, -12], ['NV-02', 'Benitez-Thompson', 'Flippo', null, -14]] },
+  { time: '22:00', label: '10:00 PM CT', races: [
+    ['WA-03', 'Perez', 'Braun', 'd', -3]] },
+  { time: '24:00', label: '12:00 AM CT', races: [
+    ['AK-AL', 'Hafner', 'Begich', 'r', -13]] },
 ];
 // party holding open seats (from the guide's Open (R)/(D) labels; TX-09/TX-35 were redrawn)
 export const OPEN_SEAT_HOLDER = {
@@ -554,17 +560,17 @@ export const WHO_COUNTS = [
 
 // ---------- Poll closings (page 1) ----------
 export const CLOSINGS = [
-  { time: '17:00', label: '5:00 PM CT', states: [['KY', 'Most of Kentucky'], ['IN', 'Most of Indiana']], house: ['KY-06', 'IN-05'], legis: [] },
+  { time: '17:00', label: '5:00 PM CT', states: [['KY', 'Most of Kentucky'], ['IN', 'Most of Indiana']], house: ['IN-05', 'KY-06'], legis: [] },
   { time: '18:00', label: '6:00 PM CT', states: [['GA', 'Senate, Governor'], ['KY', 'Senate'], ['SC', 'Senate, Governor'], ['VT', 'Governor']],
-    house: ['GA-01', 'GA-07', 'GA-10', 'GA-11', 'GA-12', 'IN-01', 'IN-05', 'KY-06', 'SC-01', 'SC-02', 'SC-05', 'VA-01', 'VA-02', 'VA-05'], legis: ['Vermont Senate'] },
+    house: ['FL-04', 'FL-07', 'FL-08', 'FL-09', 'FL-11', 'FL-12', 'FL-13', 'FL-14', 'FL-16', 'FL-18', 'FL-21', 'FL-22', 'FL-25', 'FL-26', 'FL-27', 'GA-01', 'GA-07', 'GA-10', 'GA-11', 'GA-12', 'IN-01', 'SC-01', 'SC-02', 'SC-05', 'VA-01', 'VA-02', 'VA-05'], legis: ['Vermont Senate'] },
   { time: '18:30', label: '6:30 PM CT', states: [['NC', 'Senate'], ['OH', 'Senate, Governor (check time)']],
     house: ['NC-01', 'NC-03', 'NC-05', 'NC-06', 'NC-07', 'NC-08', 'NC-09', 'NC-10', 'NC-11', 'NC-13', 'NC-14', 'OH-01', 'OH-07', 'OH-08', 'OH-09', 'OH-10', 'OH-13', 'OH-15'], legis: [] },
   { time: '19:00', label: '7:00 PM CT', states: [['FL', 'Senate, Governor'], ['ME', 'Senate'], ['NH', 'Senate (check time)'], ['RI', 'Governor']],
-    house: ['AL-02', 'FL-02', 'FL-04', 'FL-07', 'FL-08', 'FL-09', 'FL-11', 'FL-12', 'FL-13', 'FL-14', 'FL-16', 'FL-18', 'FL-21', 'FL-22', 'FL-25', 'FL-26', 'FL-27', 'ME-02', 'MO-02', 'NJ-07', 'PA-01', 'PA-07', 'PA-08', 'PA-10'],
+    house: ['AL-02', 'FL-02', 'ME-02', 'MI-04', 'MI-07', 'MI-10', 'MO-02', 'NJ-07', 'PA-01', 'PA-07', 'PA-08', 'PA-10', 'TX-09', 'TX-15', 'TX-34', 'TX-35'],
     legis: ['Maine House and Senate', 'New Hampshire Senate', 'Pennsylvania House and Senate'] },
   { time: '19:30', label: '7:30 PM CT', states: [], house: ['AR-02'], legis: [] },
   { time: '20:00', label: '8:00 PM CT', states: [['IA', 'Senate, Governor'], ['KS', 'Senate, Governor (check time)'], ['MI', 'Senate'], ['MN', 'Senate'], ['NE', 'Senate'], ['TX', 'Senate, Governor'], ['WI', 'Governor']],
-    house: ['AZ-01', 'AZ-02', 'AZ-06', 'CO-03', 'CO-04', 'CO-05', 'CO-08', 'IA-02', 'IA-03', 'MI-04', 'MI-07', 'MI-10', 'MN-01', 'NE-01', 'NY-01', 'NY-17', 'NY-21', 'TX-09', 'TX-15', 'TX-23', 'TX-34', 'TX-35', 'WI-01', 'WI-03'],
+    house: ['AZ-01', 'AZ-02', 'AZ-06', 'CO-03', 'CO-04', 'CO-05', 'CO-08', 'IA-02', 'IA-03', 'MN-01', 'NE-01', 'NY-01', 'NY-17', 'NY-21', 'TX-23', 'WI-01', 'WI-03'],
     legis: ['Arizona House and Senate', 'Michigan House and Senate', 'Minnesota House and Senate', 'Texas Senate', 'Wisconsin Senate'] },
   { time: '21:00', label: '9:00 PM CT', states: [['NV', 'Governor']], house: ['MT-01', 'NV-02'], legis: ['Nevada Senate'] },
   { time: '22:00', label: '10:00 PM CT', states: [['OR', 'Governor']], house: ['WA-03'], legis: ['Oregon Senate'] },
@@ -615,15 +621,16 @@ export const HOURS = [
       { title: 'Nebraska, Kansas, Texas', refs: ['S:NE:senate', 'S:KS:senate', 'S:TX:senate'], items: [['d', 'One GOP loss would point to a very big night; two would be historic'], ['g', 'Minnesota close is a warning']] },
       { title: 'House battlegrounds', refs: ['H:NY-17', 'H:AZ-06', 'H:CO-08', 'H:WI-03', 'H:NE-02', 'H:CO-05', 'H:WI-01'], items: [['d', 'NY-17, AZ-6, CO-8, WI-3, NE-2 flip; CO-5, WI-1 in play'], ['g', 'Arizona takes days']] },
     ] },
-  { time: '21:00', label: '9 PM', sub: 'NV, MT, OR, WA, CA', closes: 'Nevada', counted: 'Kentucky',
+  { time: '21:00', label: '9 PM', sub: 'NV, MT', closes: 'Nevada', counted: 'Kentucky',
     check: "Kentucky about 94%. Georgia's Cherokee and Fayette, NC's Buncombe and Onslow, SC's Berkeley and Spartanburg. Nevada closes.",
     watch: [
       { title: 'The West', refs: ['H:MT-01', 'H:NV-03', 'H:WA-03'], items: [['d', 'MT-1 competitive; NV-3 and WA-3 hold']] },
-      { title: 'California', refs: ['H:CA-22'], items: [['g', 'Ballots arriving within 7 days count; calls take weeks']] },
       { title: 'Checkpoint', refs: ['S:IA:governor', 'S:TX:governor', 'S:FL:governor'], items: [['d', 'Iowa, Texas, Florida governor still uncalled'], ['r', 'Georgia, Abbott, Marshall, Hinson all called']] },
     ] },
-  { time: '22:00', label: '10 PM', sub: 'Oregon', closes: 'Oregon', counted: 'Georgia, Vermont',
-    check: 'Georgia governor tightens as Fulton and Gwinnett report. Georgia and Vermont pass 90%. Fulton, Cobb and DeKalb in. Wisconsin about 58%, with Dane and Waukesha still counting.', watch: [] },
+  { time: '22:00', label: '10 PM', sub: 'OR, WA, CA', closes: 'Oregon', counted: 'Georgia, Vermont',
+    check: 'Georgia governor tightens as Fulton and Gwinnett report. Georgia and Vermont pass 90%. Fulton, Cobb and DeKalb in. Wisconsin about 58%, with Dane and Waukesha still counting.', watch: [
+      { title: 'California', refs: ['H:CA-22'], items: [['g', 'Ballots arriving within 7 days count; calls take weeks']] },
+    ] },
   { time: '23:00', label: '11 PM', sub: '', closes: '', counted: 'South Carolina, North Carolina, Ohio',
     check: "Ohio, NC and SC pass 90%. Milwaukee's absentee batch typically lands after this hour. Dane, Waukesha, La Crosse in.", watch: [] },
   { time: '24:00', label: '12 AM', sub: 'Alaska and overnight', closes: 'Alaska', counted: 'Kansas, Texas',
