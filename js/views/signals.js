@@ -83,26 +83,22 @@ function status(x) {
   return s;
 }
 
-function mobileRace(x) {
-  const max = Math.max(6, Math.abs(x.ddhq), Math.abs(x.live ?? 0));
+function mobileRace(x, max) {
   const party = (margin) => margin > 0 ? 'Democrats' : 'Republicans';
   const delta = x.miss === null ? '' : Math.abs(x.miss) < 0.05 ? 'In line with the forecast'
     : `${Math.abs(x.miss).toFixed(1)} points better for ${party(x.miss)} than forecast`;
-  const current = x.live === null ? 'No votes reported'
-    : Math.abs(x.live) < 0.05 ? 'Even so far'
-    : `${party(x.live)} lead by ${Math.abs(x.live).toFixed(1)}`;
+  const current = x.live === null ? 'Awaiting returns' : fmtMargin(x.live, { digits: 1 });
   const at = (margin) => 50 + margin / max * 43;
   return `<details class="early-race" id="mobile-h-${x.d}" ${openAttr('early-' + x.d)}>
     <summary><span class="early-title"><b>${x.d}</b><b>${current}</b></span>
       <span class="early-race-status">${x.r?.called ? status(x) : x.live !== null ? `Uncalled · ${x.r.rep}% reporting` : `Polls close ${fmtNightTime(hhmm(x.close))} CT`}</span>
-      ${delta ? `<span class="early-comparison">${delta}</span>` : ''}
       <span class="early-track" aria-hidden="true">
         <i class="early-even"></i>
         <i class="early-marker forecast" style="left:${at(x.ddhq)}%"></i>
         ${x.live === null ? '' : `<i class="early-marker current m-${marginClass(x.live)}" style="left:${at(x.live)}%"></i>`}
       </span>
-      <span class="early-labels"><span>○ Forecast <b>${lbl(x.ddhq)}</b></span>
-        ${x.live === null ? '' : `<span>● Current <b>${fmtMargin(x.live, { digits: 1 })}</b></span>`}</span>
+      <span class="early-labels"><span>Forecast <b>${lbl(x.ddhq)}</b></span>
+        ${delta ? `<span>${delta}</span>` : ''}</span>
     </summary>
     <p>${esc(x.dn)} (D) vs. ${esc(x.rn)} (R) · 2024 president ${lbl(x.m24)}</p>
     ${x.hist.length > 1 && x.live !== null ? `<p>First reported ${fmtMargin(x.hist[0][2], { digits: 1 })} → now ${fmtMargin(x.live, { digits: 1 })}</p>` : ''}
@@ -118,15 +114,17 @@ export function signalsChart({ compact = false } = {}) {
   const noRes = (x) => (x.live === null ? 1 : 0);
   if (sort === 'miss') list = [...list].sort((a, b) => noRes(a) - noRes(b) || (b.miss ?? 0) - (a.miss ?? 0) || a.i - b.i);
   if (sort === 'reporting') list = [...list].sort((a, b) => noRes(a) - noRes(b) || (b.r?.rep ?? 0) - (a.r?.rep ?? 0) || a.i - b.i);
+  const mobileMax = Math.max(20, ...list.map((x) => Math.max(Math.abs(x.ddhq), Math.abs(x.live ?? 0))));
   const sorts = [['guide', 'Guide order'], ['close', 'Poll close'], ['miss', 'Best for D vs DDHQ'], ['reporting', 'Most counted']];
   return `<section class="card wide sg">
     <div class="early-mobile">
       <div class="early-title"><h2>Early House</h2><select data-ui="sgSort" aria-label="Sort early House races">${sorts.map(([k, label]) =>
         `<option value="${k}" ${sort === k ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
       <p>${list.filter((x) => x.live !== null).length} of ${list.length} races reporting</p>
-      <p class="early-guide">Republican lead ← Even → Democratic lead</p>
-      ${list.map(mobileRace).join('')}
-      <details ${openAttr('early-guide')}><summary>How to read this</summary><p>The hollow circle marks the pre-election DDHQ forecast. The solid dot marks the current count. The center tick marks an even race. Each race has its own scale. Early districts are geographically clustered. Partial returns can change substantially, and civicAPI reporting percentages may measure different things across states.</p></details>
+      <div class="early-guide early-key"><span><i class="early-key-forecast"></i>DDHQ forecast</span><span><i class="early-key-count"></i>Current count</span></div>
+      <div class="early-guide early-axis"><span>Republican lead</span><span>Even</span><span>Democratic lead</span></div>
+      ${list.map((x) => mobileRace(x, mobileMax)).join('')}
+      <details ${openAttr('early-guide')}><summary>How to read this</summary><p>The hollow circle marks the pre-election DDHQ forecast. The solid dot marks the current count. The center tick marks an even race. Every row uses the same margin scale. Early districts are geographically clustered. Partial returns can change substantially, and civicAPI reporting percentages may measure different things across states.</p></details>
     </div>
     <div class="early-desktop"><div class="sg-title"><h2>Early signals: the first House races</h2>
       <div class="seg-ctl" role="group" aria-label="Sort rows"><span class="seg-lbl">Sort</span>${sorts.map(([k, l]) => `<button data-sg-sort="${k}" class="${sort === k ? 'on' : ''}" aria-pressed="${sort === k}">${l}</button>`).join('')}</div></div>
