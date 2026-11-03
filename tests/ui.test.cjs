@@ -98,7 +98,8 @@ const BASE = process.env.BASE || 'http://localhost:8765';
     await p.focus('[data-map-st="GA"]'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
     check('map: Enter on focused state shows its detail', /Georgia Senate/.test(await p.innerText('.maps')));
     await p.evaluate(() => { location.hash = '#/house'; }); await p.waitForTimeout(400);
-    await p.click('.ex-race summary');
+    await p.click('[data-key=night-races] > summary');
+    await p.locator('.ex-race summary').first().click();
     await p.evaluate(async () => { (await import(new URL('js/api.js', document.baseURI).href)).data.sim.tick(); }); await p.waitForTimeout(600);
     check('race marker detail stays open across re-render', await p.$eval('.ex-race', (d) => d.open));
     await p.evaluate(() => { location.hash = '#/signals'; }); await p.waitForTimeout(400);
@@ -109,6 +110,27 @@ const BASE = process.env.BASE || 'http://localhost:8765';
     check('back to live: leaves rehearsal and drops SIM tags', !/REHEARSAL/.test(st) && !(await p.$('.simtag')), st.replace(/\n/g, ' '));
     check('demo: no JS errors', errs.length === 0, errs.join(' | '));
     await ctx.close();
+  }
+  // Responsive navigation and race graphics in an offline, deterministic rehearsal.
+  for (const width of [375, 1400]) {
+    const p = await b.newPage({ viewport: { width, height: 850 } });
+    const errors = [];
+    p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`${BASE}/?demo#/`);
+    const mobile = width < 720;
+    check(`${width}px: Overview map visible`, await p.locator('.maps').isVisible());
+    check(`${width}px: correct navigation visible`, await p.locator(mobile ? '.mobile-tabs' : '.desktop-tabs').isVisible());
+    if (mobile) {
+      await p.locator('.mobile-tabs').getByRole('link', { name: 'House', exact: true }).click();
+      await p.locator('.mobile-subnav').getByRole('link', { name: 'Early House' }).click();
+      await p.locator('.early-race > summary').first().click();
+      check('mobile: early margin graphic visible and race details open', await p.locator('.early-race[open] .early-track').first().isVisible());
+    } else {
+      await p.locator('.desktop-tabs').getByRole('link', { name: 'First House races' }).click();
+      check('desktop: detailed Early House chart visible', await p.locator('.sg-grid').isVisible());
+    }
+    check(`${width}px: no JS errors`, errors.length === 0, errors.join(' | '));
+    await p.close();
   }
   await b.close();
   console.log(results.join('\n'));
