@@ -71,7 +71,7 @@ function howItWorks() {
     <ul>
       <li><b>Categories.</b> The tiers come from the Election Night Guide (pp. 4 and 6): Red Riptide = Republicans keep the House (Democrats under 218); Blue Tide = 218 to 229; Blue Wave = 230 to 239; Blue Tsunami = 240 or more. 218 of 435 is a majority; vacancies don't change who wins seats tonight.</li>
       <li><b>Forecast.</b> Decision Desk HQ's pre-election projection of 230 Democratic seats (${FORECAST_SOURCE.date}), as printed in the guide. It is not updated tonight.</li>
-      <li><b>Called seats</b> come from civicAPI's winner flags, summed district by district across all 435 seats. Leads are never counted as calls. If civicAPI withdraws a call, the seat goes back to uncalled.</li>
+      <li><b>Called seats</b> come from AP calls in NYT's results data (civicAPI's winner flags if NYT is unavailable), summed district by district across all 435 seats. Leads are never counted as calls. If civicAPI withdraws a call, the seat goes back to uncalled.</li>
       <li><b>Swing so far</b> uses only districts with a DDHQ margin that are called or at least ${SWING_MIN.reporting}% counted. It takes the median of (live margin minus DDHQ) and applies it through the scenario engine. It stays hidden until ${SWING_MIN.districts} such districts in ${SWING_MIN.states} states exist. Early-reporting districts (Florida, Virginia, the Carolinas, Ohio) are not a random sample, and civicAPI's "% reporting" is not documented as share of expected vote, so read it as a rough reading, not a projection.</li>
     </ul></details>`;
 }

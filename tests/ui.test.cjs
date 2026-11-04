@@ -17,10 +17,10 @@ const BASE = process.env.BASE || 'http://localhost:8765';
     await p.waitForFunction(() => /LIVE|STALE|OFFLINE/.test(document.querySelector('#status').innerText), null, { timeout: 90000 }).catch(() => {});
     await p.waitForTimeout(1500);
     const st = await p.innerText('#status');
-    check('live: status shows LIVE after civicAPI load', /LIVE/.test(st), st.replace(/\n/g, ' '));
+    check('live: status shows LIVE after results load', /LIVE/.test(st), st.replace(/\n/g, ' '));
     check('live: swing estimate waits (no returns)', /Waiting/.test(await p.innerText('.st-est')));
     const calls = await p.innerText('.st-calls');
-    check('live: called counts are real zeros once loaded', /Democrats called\s*0/i.test(calls), calls.replace(/\n/g, ' ').slice(0, 80));
+    check('live: called counts are real numbers once loaded (not dashes)', /Democrats called\s*\d+/i.test(calls) && /Republicans called\s*\d+/i.test(calls), calls.replace(/\n/g, ' ').slice(0, 80));
     const tk = await p.innerText('#ticker');
     check('live: Senate ticker says secured incl. holdovers', /secured incl\. holdovers/i.test(tk), tk.replace(/\n/g, ' ').slice(0, 90));
     await p.click('#refresh-btn');
@@ -30,8 +30,8 @@ const BASE = process.env.BASE || 'http://localhost:8765';
     await p.click('[data-health]'); await p.waitForTimeout(300);
     const hp = await p.innerText('.health-pop');
     check('live: feed panel lists each feed', /House, Senate and national tallies/.test(hp));
-    await ctx.route('**/civicapi.org/**', (r) => r.abort()); // freeze the feed so a background poll can't refresh the aged timestamps
-    await p.evaluate(async () => { const m = await import(new URL('js/api.js', document.baseURI).href); m.data.status.general -= 200000; m.data.status.statewide -= 200000; m.data.status.general = m.data.status.general; });
+    await ctx.route('**/civicapi.org/**', (r) => r.abort()); await ctx.route('**/static01.nyt.com/**', (r) => r.abort()); // freeze the feed so a background poll can't refresh the aged timestamps
+    await p.evaluate(async () => { const m = await import(new URL('js/api.js', document.baseURI).href); m.data.status.general -= 200000; m.data.status.statewide -= 200000; if (m.data.status.nyt) m.data.status.nyt -= 400000; m.data.status.general = m.data.status.general; });
     await p.click('body', { position: { x: 5, y: 600 } });
     await p.waitForTimeout(1500);
     check('live: old data shows STALE, not LIVE', /STALE/.test(await p.innerText('#status')), (await p.innerText('#status')).replace(/\n/g, ' '));
@@ -47,7 +47,7 @@ const BASE = process.env.BASE || 'http://localhost:8765';
   // 2. Feed blocked
   {
     const ctx = await b.newContext({ viewport: { width: 1400, height: 900 } });
-    await ctx.route('**/civicapi.org/**', (r) => r.abort());
+    await ctx.route('**/civicapi.org/**', (r) => r.abort()); await ctx.route('**/static01.nyt.com/**', (r) => r.abort());
     const p = await ctx.newPage();
     await p.goto(`${BASE}/?live#/house`); await p.waitForTimeout(6000);
     const st = await p.innerText('#status');
@@ -63,7 +63,7 @@ const BASE = process.env.BASE || 'http://localhost:8765';
   // House scale: no illustrative race markers, no rehearsal
   {
     const ctx = await b.newContext({ viewport: { width: 1400, height: 900 } });
-    await ctx.route('**/civicapi.org/**', (r) => r.abort());
+    await ctx.route('**/civicapi.org/**', (r) => r.abort()); await ctx.route('**/static01.nyt.com/**', (r) => r.abort());
     const p = await ctx.newPage();
     await p.goto(`${BASE}/#/house`); await p.waitForSelector('.ns-bar');
     check('House centerpiece keeps the majority scale', /218 majority/.test(await p.innerText('.ns-bar')));
@@ -74,7 +74,7 @@ const BASE = process.env.BASE || 'http://localhost:8765';
   // Wisconsin legislature results center: maps for both chambers and a full results table
   {
     const ctx = await b.newContext({ viewport: { width: 1400, height: 900 } });
-    await ctx.route('**/civicapi.org/**', (r) => r.abort());
+    await ctx.route('**/civicapi.org/**', (r) => r.abort()); await ctx.route('**/static01.nyt.com/**', (r) => r.abort());
     const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
     await p.goto(`${BASE}/#/legislatures`); await p.waitForSelector('#wi-assembly');
     check('WI: Senate map has all 33 districts', (await p.locator('#wi-senate .wi-main path').count()) === 33);
@@ -89,7 +89,7 @@ const BASE = process.env.BASE || 'http://localhost:8765';
   // Responsive navigation and layout with the feed blocked (deterministic, no network).
   for (const width of [375, 1400]) {
     const ctx = await b.newContext({ viewport: { width, height: 850 } });
-    await ctx.route('**/civicapi.org/**', (r) => r.abort());
+    await ctx.route('**/civicapi.org/**', (r) => r.abort()); await ctx.route('**/static01.nyt.com/**', (r) => r.abort());
     const p = await ctx.newPage();
     const errors = [];
     p.on('pageerror', (e) => errors.push(e.message));

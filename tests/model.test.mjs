@@ -146,6 +146,23 @@ test('feed health states', () => {
   data.status.general = Date.now() - 200_000; assert.equal(api.feedHealth().state, 'stale');
   data.status.general = Date.now() - 400_000; assert.equal(api.feedHealth().state, 'offline');
   data.status.general = Date.now() - 5_000; data.errors.general = 'x'; assert.equal(api.feedHealth().state, 'stale');
+  data.status.nyt = Date.now() - 5_000; assert.equal(api.feedHealth().state, 'live', 'NYT healthy while civicAPI fails');
+  data.errors.nyt = 'x'; assert.equal(api.feedHealth().state, 'stale', 'both failing');
+  data.status.nyt = null; data.errors = {};
+});
+test('civicAPI does not overwrite fresh NYT numbers, but fills in once NYT goes quiet', () => {
+  reset(); data.mode = 'live';
+  const id = RACE_IDS.house['KY-06'];
+  data.status.nyt = Date.now();
+  api.ingestForTest({ id, src: 'nyt', percent_reporting: 8, candidates: [C('Zach Dembo', 'Democratic', 9000), C('Ralph Alvarado', 'Republican', 15986)] });
+  api.ingestForTest({ id, election_name: 'Kentucky US House 6', province: 'KY', percent_reporting: 2, candidates: [C('Zach Dembo', 'Democratic', 1539), C('Ralph Alvarado', 'Republican', 2312)] });
+  let r = data.races.get(id);
+  assert.equal(r.percent_reporting, 8); assert.equal(r.candidates[0].votes, 9000); assert.equal(r.province, 'KY', 'keeps civicAPI descriptive fields');
+  data.status.nyt = Date.now() - 6 * 60_000; // NYT quiet for 6 minutes
+  api.ingestForTest({ id, percent_reporting: 30, candidates: [C('Zach Dembo', 'Democratic', 20000), C('Ralph Alvarado', 'Republican', 30000)] });
+  r = data.races.get(id);
+  assert.equal(r.percent_reporting, 30); assert.equal(r.src, 'civic');
+  data.status.nyt = null; reset();
 });
 
 // ---------- poll closings ----------
@@ -204,5 +221,29 @@ test('hour-by-hour "closing" labels name only states closing that hour', () => {
   });
   reset();
 }
+
+// ---------- NYT feed (main source) ----------
+test('NYT races convert to the site race shape with AP calls and expected-vote %', () => {
+  const nyt = {
+    nyt_id: 'IN-G-H-5-2026-11-03', updated_at: '2026-11-04T00:30:00Z', outcome: { won: ['ford-j'] },
+    candidate_metadata: {
+      'ford-j': { first_name: 'Jamie', last_name: 'Ford', party: { nyt_id: 'DEM', name: 'Democrat' } },
+      'spartz-v': { first_name: 'Victoria', last_name: 'Spartz', party: { nyt_id: 'GOP', name: 'Republican' }, incumbent: true },
+    },
+    reporting_units: [
+      { level: 'state', eevp: 46.54, candidates: [{ nyt_id: 'ford-j', votes: { total: 75998 } }, { nyt_id: 'spartz-v', votes: { total: 50789 } }] },
+      { level: 'county', eevp: 10, candidates: [] },
+    ],
+  };
+  const r = api.fromNyt(nyt);
+  assert.equal(r.id, RACE_IDS.house['IN-05']);
+  assert.equal(r.src, 'nyt'); assert.equal(r.percent_reporting, 47);
+  assert.deepEqual(r.candidates.map((c) => [c.name, c.party, c.votes, c.winner]), [['Jamie Ford', 'Democratic', 75998, true], ['Victoria Spartz', 'Republican', 50789, false]]);
+  assert.equal(api.fromNyt({ ...nyt, nyt_id: 'AK-G-H-1-2026-11-03' }).id, RACE_IDS.house['AK-AL'], 'at-large seat');
+  assert.equal(api.fromNyt({ ...nyt, nyt_id: 'FL-S_W-S-2026-11-03' }).id, RACE_IDS.senate.FL, 'special Senate election');
+  assert.equal(api.fromNyt({ ...nyt, nyt_id: 'GA-G-G-2026-11-03' }).id, RACE_IDS.governor.GA);
+  assert.equal(api.fromNyt({ ...nyt, nyt_id: 'US-G-H-2026-11-03' }), null, 'national summary row is skipped');
+  assert.equal(api.fromNyt({ ...nyt, reporting_units: [{ level: 'state', eevp: 0.59, candidates: [] }] }).percent_reporting, 0.6);
+});
 
 console.log(`\n${n} tests passed${process.exitCode ? ', some FAILED' : ''}`);
