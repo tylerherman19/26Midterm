@@ -274,4 +274,23 @@ function init() {
   render();
 }
 
+// ---------- auto-update ----------
+// An open tab keeps running the code it loaded. Deploys write version.json; when it no longer matches this
+// page's build, reload so everyone sees the current site (skipped in local development, where build is "dev").
+const BUILD = document.querySelector('meta[name="build"]')?.content || 'dev';
+async function checkForUpdate() {
+  if (BUILD === 'dev' || document.hidden) return;
+  try {
+    const res = await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const { v } = await res.json();
+    if (v && v !== BUILD) {
+      toast({ side: 'n', text: 'Site updated', sub: 'Reloading with the latest version…' });
+      setTimeout(() => location.reload(), 1500);
+    }
+  } catch { /* offline: try again later */ }
+}
+setInterval(checkForUpdate, 60_000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
+
 init();
