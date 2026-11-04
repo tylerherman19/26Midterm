@@ -23,6 +23,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Stamp every script and stylesheet URL with this commit so browsers can't keep running old code
+      # after a deploy (GitHub Pages tells browsers to reuse files for 10 minutes).
+      - name: Version asset URLs
+        run: |
+          V="${GITHUB_SHA::8}"
+          find js -name '*.js' -print0 | xargs -0 sed -i -E "s#(from '\.{1,2}/[^'?]+\.js)'#\1?v=$V'#g"
+          sed -i -E "s#(src=\"js/app\.js)\"#\1?v=$V\"#; s#(href=\"css/app\.css)\"#\1?v=$V\"#" index.html
+          sed -i -E "s#<meta name=\"build\" content=\"dev\" />#<meta name=\"build\" content=\"$V\" />#" index.html
+          echo "{\"v\":\"$V\"}" > version.json
+          test "$(grep -c "$V" index.html)" -ge 3
+          ! grep -rnE "from '\.{1,2}/[^'?]+\.js'" js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
