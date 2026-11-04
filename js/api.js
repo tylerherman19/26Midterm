@@ -54,7 +54,9 @@ async function getJSON(url, { timeout = 45_000 } = {}) {
   data.inflight++;
   emit();
   try {
-    const res = await fetch(url, { signal: ctl.signal, headers: { Accept: 'application/json' } });
+    // cache: 'no-cache' makes the browser revalidate every time. civicAPI allows a 15s cache plus 30s of
+    // stale-while-revalidate, so without this a poll could get a copy up to ~45s old.
+    const res = await fetch(url, { signal: ctl.signal, cache: 'no-cache', headers: { Accept: 'application/json' } });
     const text = await res.text();
     let body;
     try { body = JSON.parse(text); } catch { throw new Error(`HTTP ${res.status}: ${text.slice(0, 80)}`); }
@@ -118,19 +120,28 @@ function searchURL(params) {
   return `${BASE}/race/search?${q}`;
 }
 
+// Requests to the same feed can overlap (a manual refresh during a scheduled poll, or a slow response).
+// Only the newest request's response is applied, so an older, slower response can't overwrite fresher numbers.
+const feedSeq = {}, feedApplied = {};
 async function fetchSearch(key, params) {
   data.lastTry[key] = Date.now();
+  const seq = (feedSeq[key] = (feedSeq[key] || 0) + 1);
+  let ok = false;
   try {
     const body = await getJSON(searchURL(params), { timeout: 60_000 });
+    if (seq < (feedApplied[key] || 0)) return true; // a newer response for this feed already landed
+    feedApplied[key] = seq;
     (body.races || []).forEach((r) => ingest(r));
     data.status[key] = Date.now();
     delete data.errors[key];
     data.lastUpdate = Date.now();
+    ok = true;
   } catch (e) {
-    data.errors[key] = `${e.message || e}`;
+    if (seq >= (feedApplied[key] || 0)) data.errors[key] = `${e.message || e}`;
   }
   persistHistory();
   emit();
+  return ok;
 }
 
 // Statewide guide races whose county tables we need
@@ -180,13 +191,16 @@ async function fallbackHouse(districts) {
 
 // ---------- polling loops ----------
 const timers = [];
+// After a failed poll, try again sooner than the normal interval so a slow or dropped request
+// doesn't leave results a full extra cycle behind.
+const RETRY_MS = 10_000;
 function loop(fn, ms, initialDelay = 0) {
   let stopped = false;
   const run = async () => {
     if (stopped) return;
     if (document.hidden && data.mode === 'live') { timers.push(setTimeout(run, 5000)); return; }
-    await fn();
-    if (!stopped) timers.push(setTimeout(run, ms));
+    const ok = await fn();
+    if (!stopped) timers.push(setTimeout(run, ok === false ? Math.min(ms, RETRY_MS) : ms));
   };
   timers.push(setTimeout(run, initialDelay));
   return () => { stopped = true; };
@@ -200,9 +214,10 @@ export function startLive() {
   data.mode = 'live';
   loadHistory();
   stops.push(loop(async () => {
-    await fetchSearch('general', { election_type: 'General' });
-    data.nextUpdate = Date.now() + INTERVAL.general;
+    const ok = await fetchSearch('general', { election_type: 'General' });
+    data.nextUpdate = Date.now() + (ok ? INTERVAL.general : RETRY_MS);
     if (data.errors.general && !data.status.general && houseFallbackList.length) await fallbackHouse(houseFallbackList);
+    return ok;
   }, INTERVAL.general));
   stops.push(loop(() => fetchSearch('statewide', { election_type: 'Statewide' }), INTERVAL.statewide, 1500));
   stops.push(loop(() => fetchSearch('wi', { province: 'WI', query: 'Wisconsin State', country: 'US' }), INTERVAL.wi, 3000));
