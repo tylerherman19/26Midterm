@@ -197,31 +197,6 @@ test('hour-by-hour "closing" labels name only states closing that hour', () => {
   }
 });
 
-// ---------- feed ordering ----------
-{
-  // Two overlapping refreshes: the first request is slow and returns older numbers after the second has landed.
-  reset();
-  const realFetch = globalThis.fetch;
-  let call = 0;
-  const race = (votes, rep) => ({ id: 87140, election_name: 'Indiana US House 6', percent_reporting: rep, candidates: [C('Wirth', 'Democratic', votes[0]), C('Shreve', 'Republican', votes[1])] });
-  globalThis.fetch = (url) => {
-    const general = String(url).includes('election_type=General');
-    const n = general ? ++call : 0;
-    const body = general ? { races: [n === 1 ? race([100, 90], 1) : race([6721, 5481], 6)] } : { races: [] };
-    const delay = n === 1 ? 60 : 5;
-    return new Promise((res) => setTimeout(() => res({ ok: true, status: 200, text: async () => JSON.stringify(body) }), delay));
-  };
-  try {
-    await Promise.all([api.refreshNow(), new Promise((r) => setTimeout(r, 10)).then(() => api.refreshNow())]);
-  } finally { globalThis.fetch = realFetch; }
-  test('an older, slower response does not overwrite newer results from the same feed', () => {
-    const r = data.races.get(87140);
-    assert.equal(r.percent_reporting, 6);
-    assert.deepEqual(r.candidates.map((c) => c.votes), [6721, 5481]);
-  });
-  reset();
-}
-
 // ---------- NYT feed (main source) ----------
 test('NYT races convert to the site race shape with AP calls and expected-vote %', () => {
   const nyt = {

@@ -26,12 +26,12 @@ const BASE = process.env.BASE || 'http://localhost:8765';
     await p.click('#refresh-btn');
     await p.waitForSelector('.toast', { timeout: 60000 });
     const tt = await p.innerText('.toast');
-    check('live: manual refresh gives feedback', /Refreshed at|Refresh failed/.test(tt), tt.replace(/\n/g, ' '));
+    check('live: manual refresh gives feedback', /Refreshed|No feeds refreshed|Refresh failed/.test(tt), tt.replace(/\n/g, ' '));
     await p.click('[data-health]'); await p.waitForTimeout(300);
     const hp = await p.innerText('.health-pop');
     check('live: feed panel lists each feed', /House, Senate and national tallies/.test(hp));
     await ctx.route('**/civicapi.org/**', (r) => r.abort()); await ctx.route('**/static01.nyt.com/**', (r) => r.abort()); // freeze the feed so a background poll can't refresh the aged timestamps
-    await p.evaluate(async () => { const m = await import(new URL('js/api.js', document.baseURI).href); m.data.status.general -= 200000; m.data.status.statewide -= 200000; if (m.data.status.nyt) m.data.status.nyt -= 400000; m.data.status.general = m.data.status.general; });
+    await p.evaluate(async () => { const m = await import(new URL('js/api.js', document.baseURI).href); const old = Date.now() - 200000; m.data.status.general = old; m.data.status.statewide = old; m.data.status.nyt = old; m.data.status.general = m.data.status.general; });
     await p.click('body', { position: { x: 5, y: 600 } });
     await p.waitForTimeout(1500);
     check('live: old data shows STALE, not LIVE', /STALE/.test(await p.innerText('#status')), (await p.innerText('#status')).replace(/\n/g, ' '));

@@ -632,9 +632,7 @@ td.inby { font-size: 12px; white-space: nowrap; }
 .sg-foot .sg-axis { height: 16px; }
 .sg-axis em { position: absolute; bottom: 0; transform: translateX(-50%); font-style: normal; font-size: 10px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .sg-foot .sg-axis em { top: 0; bottom: auto; }
-.sg-axis em.cap { bottom: 16px; font-size: 9.5px; font-weight: 800; color: var(--ink); transform: none; }
-.sg-axis em.cap.l { left: 30%; }
-.sg-axis em.cap:not(.l) { transform: translateX(-12px); }
+.sg-axis em.cap { bottom: 16px; left: 50%; font-size: 9.5px; font-weight: 800; color: var(--ink); }
 .sg-seat { display: flex; flex-direction: column; line-height: 1.15; }
 .sg-seat b { font-size: 13px; font-weight: 800; }
 .sg-seat small { font-size: 9.5px; color: var(--muted); }
@@ -643,8 +641,8 @@ td.inby { font-size: 12px; white-space: nowrap; }
 .sg-track { position: relative; height: 22px; }
 .sg-track .zz { position: absolute; top: 2px; bottom: 2px; }
 .sg-track .zz.worse { background: var(--sg-worse); } .sg-track .zz.within { background: var(--sg-within); } .sg-track .zz.better { background: var(--sg-better); }
-.sg-track .cells { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0, transparent calc(10% - 2px), var(--card) calc(10% - 2px), var(--card) 10%); pointer-events: none; }
-.sg-row:nth-child(even) .sg-track .cells { background: repeating-linear-gradient(90deg, transparent 0, transparent calc(10% - 2px), var(--sg-row) calc(10% - 2px), var(--sg-row) 10%); }
+.sg-track .cells { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0, transparent calc(var(--sg-cell, 10%) - 2px), var(--card) calc(var(--sg-cell, 10%) - 2px), var(--card) var(--sg-cell, 10%)); pointer-events: none; }
+.sg-row:nth-child(even) .sg-track .cells { background: repeating-linear-gradient(90deg, transparent 0, transparent calc(var(--sg-cell, 10%) - 2px), var(--sg-row) calc(var(--sg-cell, 10%) - 2px), var(--sg-row) var(--sg-cell, 10%)); }
 .sg-track .even { position: absolute; top: -6px; bottom: -6px; border-left: 1.5px dashed var(--ink-2); }
 .sg-track .ddhq { position: absolute; top: 0; bottom: 0; width: 4px; background: var(--ink); transform: translateX(-2px); border-radius: 1px; }
 .sg-track .c24 { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; border: 1.8px solid var(--ink); background: var(--card); transform: translate(-50%, -50%); }
