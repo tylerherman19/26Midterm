@@ -8,9 +8,15 @@ import { FORECAST_SOURCE } from '../data/houseForecast.js';
 import { HOUSE_META } from '../model.js';
 import { ui, openAttr } from '../state.js';
 
-const MIN = -26, MAX = 14; // cells are 4 pts wide, centered on R+24 … D+12
-const P = (v) => Math.max(0, Math.min(100, ((v - MIN) / (MAX - MIN)) * 100));
-const TICKS = [-24, -20, -16, -12, -8, -4, 0, 4, 8, 12];
+function chartScale(list) {
+  const values = list.flatMap(({ ddhq, m24, live, hist }) => [ddhq - 3, ddhq + 3, m24, live, ...hist.map((p) => p[2])]);
+  const low = Math.min(-24, ...values), high = Math.max(12, ...values);
+  const step = Math.max(4, Math.ceil((high - low) / 40) * 4);
+  const first = Math.floor(low / step) * step, last = Math.ceil(high / step) * step;
+  const ticks = Array.from({ length: (last - first) / step + 1 }, (_, i) => first + i * step);
+  const at = (margin) => (margin - first + step / 2) / (ticks.length * step) * 100;
+  return { ticks, at };
+}
 const lbl = (m) => fmtMargin(m, { digits: 0 });
 
 function zoneOf(margin, ddhq) {
@@ -51,7 +57,7 @@ function summary(list) {
   </div>`;
 }
 
-function track(x) {
+function track(x, P) {
   const { ddhq, m24, live, zone, r, hist } = x;
   const right = live !== null && P(live) > 78;
   // trail: up to 12 evenly spaced past positions
@@ -108,14 +114,15 @@ function mobileRace(x, max) {
 
 export function signalsChart({ compact = false } = {}) {
   let list = rows();
-  const sort = ui.sgSort || 'close';
+  const sort = ui.sgSort || 'guide';
   if (sort === 'close') list = [...list].sort((a, b) => hhmm(a.close) - hhmm(b.close) || a.i - b.i);
   // Races with no results always sort after races with results, in guide order.
   const noRes = (x) => (x.live === null ? 1 : 0);
   if (sort === 'miss') list = [...list].sort((a, b) => noRes(a) - noRes(b) || (b.miss ?? 0) - (a.miss ?? 0) || a.i - b.i);
   if (sort === 'reporting') list = [...list].sort((a, b) => noRes(a) - noRes(b) || (b.r?.rep ?? 0) - (a.r?.rep ?? 0) || a.i - b.i);
+  const { ticks, at: P } = chartScale(list);
   const mobileMax = Math.max(20, ...list.map((x) => Math.max(Math.abs(x.ddhq), Math.abs(x.live ?? 0))));
-  const sorts = [['close', 'Poll close'], ['guide', 'Guide order'], ['miss', 'Best for D vs DDHQ'], ['reporting', 'Most counted']];
+  const sorts = [['guide', 'Guide order'], ['close', 'Poll close'], ['miss', 'Best for D vs DDHQ'], ['reporting', 'Most counted']];
   return `<section class="card wide sg">
     <div class="early-mobile">
       <div class="early-title"><h2>Early House</h2><select data-ui="sgSort" aria-label="Sort early House races">${sorts.map(([k, label]) =>
@@ -126,7 +133,7 @@ export function signalsChart({ compact = false } = {}) {
       ${list.map((x) => mobileRace(x, mobileMax)).join('')}
       <details ${openAttr('early-guide')}><summary>How to read this</summary><p>The hollow circle marks the pre-election DDHQ forecast. The solid dot marks the current count. The center tick marks an even race. Every row uses the same margin scale. Early districts are geographically clustered. Partial returns can change substantially, and civicAPI reporting percentages may measure different things across states.</p></details>
     </div>
-    <div class="early-desktop"><div class="sg-title"><h2>Early signals: the first House races</h2>
+    <div class="early-desktop" style="--sg-cell:${100 / ticks.length}%"><div class="sg-title"><h2>Early signals: the first House races</h2>
       <div class="seg-ctl" role="group" aria-label="Sort rows"><span class="seg-lbl">Sort</span>${sorts.map(([k, l]) => `<button data-sg-sort="${k}" class="${sort === k ? 'on' : ''}" aria-pressed="${sort === k}">${l}</button>`).join('')}</div></div>
     <p class="dek">Are the first-reporting House races coming in better or worse for Democrats than the pre-election forecast?</p>
     <p class="small muted">These ${list.length} districts close early (5 to 6:30 PM CT) and sit mostly in Florida, Virginia, the Carolinas, Ohio, Kentucky and Indiana, so they are not a national sample. The ±3-point bands are the guide's editorial threshold, not a statistical margin of error. Forecast: DDHQ, ${FORECAST_SOURCE.date}.</p>
@@ -139,13 +146,13 @@ export function signalsChart({ compact = false } = {}) {
     <div class="sg-scroll"><div class="sg-grid">
       <div class="sg-row sg-head">
         <span></span><span></span>
-        <span class="sg-axis"><em class="cap l">RESULT IN THE DISTRICT</em><em class="cap" style="left:${P(0)}%">EVEN: Democrat wins to the right</em>${TICKS.map((t) => `<em style="left:${P(t)}%">${t === 0 ? 'Even' : lbl(t)}</em>`).join('')}</span>
+        <span class="sg-axis"><em class="cap">RESULT IN THE DISTRICT</em>${ticks.map((t) => `<em style="left:${P(t)}%">${t === 0 ? 'Even' : lbl(t)}</em>`).join('')}</span>
         <span class="n">2024</span><span class="n">DDHQ</span><span class="n"><small>BELOW</small>WORSE</span><span class="n"><small>ABOVE</small>BETTER</span><span class="n">LIVE</span><span>READ</span>
       </div>
       ${list.map((x) => `<div class="sg-row ${x.r?.called ? 'is-called' : ''} ${ui.focus === x.d ? 'focus' : ''}" id="h-${x.d}">
         <span class="sg-seat"><b>${x.d}</b><small>${fmtNightTime(hhmm(x.close))}<span class="ct"> CT</span></small></span>
         <span class="sg-m">${esc(x.dn)}${x.inc === 'd' ? ' (i)' : ''} v. ${esc(x.rn)}${x.inc === 'r' ? ' (i)' : ''}${x.inc === null ? ' · open' : ''}${x.lateR ? '<small class="late">late votes leaned R in 2022</small>' : ''}</span>
-        ${track(x)}
+        ${track(x, P)}
         <span class="n m-${marginClass(x.m24)}">${lbl(x.m24)}</span>
         <span class="n b m-${marginClass(x.ddhq)}">${lbl(x.ddhq)}</span>
         <span class="n m-${marginClass(x.ddhq - 3)}">${lbl(x.ddhq - 3)}</span>
@@ -153,7 +160,7 @@ export function signalsChart({ compact = false } = {}) {
         <span class="n sg-live">${x.live !== null ? `<b class="m-${marginClass(x.live)}">${fmtMargin(x.live, { digits: 1 })}</b><small>${x.r.rep}% in</small>` : '<span class="muted">—</span>'}</span>
         <span class="sg-read">${status(x)}</span>
       </div>`).join('')}
-      <div class="sg-row sg-foot"><span></span><span></span><span class="sg-axis">${TICKS.map((t) => `<em style="left:${P(t)}%">${t === 0 ? 'Even' : lbl(t)}</em>`).join('')}</span></div>
+      <div class="sg-row sg-foot"><span></span><span></span><span class="sg-axis">${ticks.map((t) => `<em style="left:${P(t)}%">${t === 0 ? 'Even' : lbl(t)}</em>`).join('')}</span></div>
     </div></div>
     ${compact ? '' : `<p class="muted small">The live dot is colored by the band it's in (red = worse by 3+, gray = within 3, blue = better by 3+). Faint dots trace its path as the count came in. A partly counted district can move a lot: "late votes leaned R in 2022" is a historical observation from that year, not a prediction. civicAPI's "% in" is not documented as share of expected vote and may not be comparable across states.</p>`}
     </div>

@@ -7,7 +7,7 @@ globalThis.localStorage = { getItem: () => null, setItem: () => {} };
 const id = RACE_IDS.house['IN-06'];
 const race = (id, percent_reporting) => ({ id, percent_reporting, candidates: [] });
 let general = { races: [race(id, 5)] };
-let district = race(id, 15);
+let district = { percent_reporting: 15, candidates: [] };
 let attempts = [];
 globalThis.fetch = async (url) => {
   attempts.push(url);

@@ -134,6 +134,7 @@ function searchURL(params) {
 
 const searchRequests = new Map();
 const validRace = (race) => Number(race?.id) > 0 && Array.isArray(race.candidates);
+const validDetail = (race, id) => Array.isArray(race?.candidates) && (race.id == null || Number(race.id) === id);
 const generalIds = new Set([...Object.values(RACE_IDS.house), ...Object.values(RACE_IDS.senate)].map(Number));
 
 function fetchSearch(key, params) {
@@ -189,8 +190,8 @@ async function fetchDetails({ force = false } = {}) {
     const started = Date.now();
     try {
       const body = await getJSON(`${BASE}/race/${x.id}`, { timeout: 15_000 });
-      if (!validRace(body) || Number(body.id) !== x.id) throw new Error('civicAPI returned invalid race detail');
-      ingest(body, { detail: true, started });
+      if (!validDetail(body, x.id)) throw new Error('civicAPI returned invalid race detail');
+      ingest({ ...body, id: x.id }, { detail: true, started });
       ok++;
     } catch (e) {
       data.errors.details = `${e.message || e}`;
@@ -218,8 +219,8 @@ async function fallbackGeneral() {
   await pool([...new Set([...focused.slice(0, 2), ...batch])], 2, async (id) => {
     const started = Date.now();
     const race = await getJSON(`${BASE}/race/${id}`, { timeout: 10_000 });
-    if (!validRace(race) || Number(race.id) !== id) return;
-    ingest(race, { started });
+    if (!validDetail(race, id)) return;
+    ingest({ ...race, id }, { started });
     recovered++;
     data.lastFallback = Date.now();
     emit();
