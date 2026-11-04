@@ -60,7 +60,7 @@ function renderTicker() {
   const v = (n) => (loaded ? n : '—');
   $('#ticker').innerHTML = `
     <a href="#/" class="tk" title="Senate seats secured: 34 D and 31 R holdovers not up in 2026, plus 2026 races called"><span class="lbl">Senate</span><b class="d">${v(s.securedD)}</b><span class="sep">–</span><b class="r">${v(s.securedR)}</b><small>secured incl. holdovers · ${v(s.calledD + s.calledR)} of ${s.up} races called</small></a>
-    <a href="#/house" class="tk" title="House seats called by civicAPI"><span class="lbl">House</span><b class="d">${v(h.calledD)}</b><span class="sep">–</span><b class="r">${v(h.calledR)}</b><small>called · 218 to win</small></a>
+    <a href="#/house" class="tk" title="House seats called (AP calls via NYT; civicAPI if NYT is unavailable)"><span class="lbl">House</span><b class="d">${v(h.calledD)}</b><span class="sep">–</span><b class="r">${v(h.calledR)}</b><small>called · 218 to win</small></a>
     ${m.enough ? `<a href="#/house" class="tk" title="Median result minus DDHQ in mostly-counted forecast districts"><span class="lbl">Swing so far</span><b class="${m.miss >= 0 ? 'd' : 'r'}">${m.miss >= 0 ? 'D' : 'R'}+${Math.abs(m.miss).toFixed(1)}</b><small>${m.n} districts · scenario</small></a>` : ''}`;
 }
 
@@ -121,7 +121,7 @@ function renderStatus() {
 }
 const nightFromTs = (ts) => (ts - Date.UTC(2026, 10, 3, 6)) / 60000;
 function healthPanel() {
-  return `<div class="health-pop" role="dialog" aria-label="Feed status"><p><b>civicAPI feeds</b> <span class="muted">(results provider; calls are civicAPI's)</span></p>
+  return `<div class="health-pop" role="dialog" aria-label="Feed status"><p><b>Results feeds</b> <span class="muted">(NYT is the main source for House, Senate and governor, with AP calls; civicAPI is the fallback and supplies counties and legislatures)</span></p>
     <table class="mini-t"><tbody>${FEEDS.map(([k, label, every]) => {
       const ok = data.status[k];
       const err = data.errors[k];
@@ -195,11 +195,11 @@ function init() {
     b.disabled = true; b.classList.add('spin'); b.setAttribute('aria-busy', 'true');
     const r = await refreshNow();
     b.disabled = false; b.classList.remove('spin'); b.removeAttribute('aria-busy');
-    const refreshed = [r.general && 'House and Senate', r.statewide && 'governors and state chambers'].filter(Boolean);
+    const refreshed = [r.nyt && 'NYT House, Senate and governor', r.general && 'civicAPI House and Senate', r.statewide && 'governors and state chambers'].filter(Boolean);
     if (r.recovered) refreshed.push(`${r.recovered} priority races`);
     toast({ side: refreshed.length ? 'n' : 'r',
       text: refreshed.length ? `Refreshed ${refreshed.join(' · ')}` : 'No feeds refreshed',
-      sub: r.general ? '' : 'The bulk House and Senate feed is still retrying.' });
+      sub: r.general || r.nyt ? '' : 'The House and Senate feeds are still retrying.' });
     renderStatus();
   };
   $('#notify-btn').onclick = async () => {

@@ -1,6 +1,6 @@
 // Derived results: margins, calls, benchmarks, tiers, tells, and the night-level projections.
 
-import { data, nowNight } from './api.js';
+import { data, nowNight, nytFresh } from './api.js';
 import { RACE_IDS } from './data/raceIds.js';
 import {
   STATES, SENATE, SENATE_TIER_BARS, HOUSE, HOUSE_TIER_SEATS, HOUSE_WATCH, EARLY_HOUSE, OPEN_SEAT_HOLDER,
@@ -222,7 +222,7 @@ export function senateTally() {
     scenarioD, scenarioNet: scenarioD - SENATE.dBefore, scenarioTier: senateNetTier(scenarioD - SENATE.dBefore),
     anyResults: calledD + calledR + calledO + leadD + leadR + tied > 0,
     control: securedD >= 51 ? 'd' : securedR >= 50 ? 'r' : null, // 50 R seats + VP tiebreak = control
-    feedCheck: agg ? { d: agg.d, r: agg.r, matches: agg.d === securedD && agg.r === securedR } : null,
+    feedCheck: agg && !nytFresh() ? { d: agg.d, r: agg.r, matches: agg.d === securedD && agg.r === securedR } : null, // only comparable when both come from civicAPI
   };
 }
 
@@ -250,7 +250,7 @@ export function houseTally() {
     needD: Math.max(0, 218 - calledD), needR: Math.max(0, 218 - calledR),
     control: calledD >= 218 ? 'd' : calledR >= 218 ? 'r' : null,
     reconciles: calledD + calledR + calledO + leadD + leadR + leadO + tied + noVotes + unavailable === dists.length,
-    feedCheck: agg ? { d: agg.d, r: agg.r, matches: agg.d === calledD && agg.r === calledR } : null,
+    feedCheck: agg && !nytFresh() ? { d: agg.d, r: agg.r, matches: agg.d === calledD && agg.r === calledR } : null,
   };
 }
 

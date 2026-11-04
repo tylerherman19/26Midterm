@@ -1,4 +1,6 @@
-// civicAPI data layer: polling, caching and history tracking.
+// Results data layer: polling, caching and history tracking.
+// Main source: The New York Times' live results files (AP race calls) for House, Senate and governor.
+// civicAPI is the fallback for those races and the only source for county tables and state legislatures.
 // Docs: https://civicapi.org/api-documentation  (free, no auth, CORS open; please keep attribution in the footer)
 
 import { RACE_IDS } from './data/raceIds.js';
@@ -8,9 +10,10 @@ import { nightMinutesFromDate, hhmm, store as ls } from './util.js';
 const BASE = 'https://civicapi.org/api/v2';
 const DATE = '2026-11-03';
 
-export const INTERVAL = { general: 30_000, statewide: 60_000, wi: 90_000, mn: 90_000, details: 45_000 };
+export const INTERVAL = { nyt: 30_000, general: 30_000, statewide: 60_000, wi: 90_000, mn: 90_000, details: 45_000 };
 export const FEEDS = [
-  ['general', 'House, Senate and national tallies', 30],
+  ['nyt', 'NYT results: House, Senate, governor (main)', 30],
+  ['general', 'civicAPI House, Senate and national tallies (fallback)', 30],
   ['statewide', 'Governors and state chambers', 60],
   ['details', 'County results (guide states)', 45],
   ['wi', 'Wisconsin legislative districts', 90],
@@ -22,7 +25,7 @@ export const data = {
   races: new Map(), // id -> race summary {id, election_name, type, province, district, percent_reporting, candidates[]}
   details: new Map(), // id -> full race payload incl. region_results
   history: {}, // id -> [[nightMin, reporting, margin]]
-  status: { general: null, statewide: null, wi: null, mn: null, details: null },
+  status: { nyt: null, general: null, statewide: null, wi: null, mn: null, details: null },
   lastTry: {},
   lastFallback: null,
   errors: {},
@@ -55,7 +58,8 @@ async function getJSON(url, { timeout = 45_000 } = {}) {
   data.inflight++;
   emit();
   try {
-    const res = await fetch(url, { signal: ctl.signal, headers: { Accept: 'application/json' } });
+    // cache: 'no-cache' makes the browser revalidate every time instead of reusing a copy up to ~45s old.
+    const res = await fetch(url, { signal: ctl.signal, cache: 'no-cache', headers: { Accept: 'application/json' } });
     const text = await res.text();
     let body;
     try { body = JSON.parse(text); } catch { throw new Error(`HTTP ${res.status}: ${text.slice(0, 80)}`); }
@@ -81,11 +85,34 @@ async function pool(items, n, fn) {
   await Promise.all(workers);
 }
 
+// NYT's numbers stay authoritative while its feed is fresh; civicAPI fills in only if NYT goes quiet.
+const NYT_FRESH_MS = 5 * 60_000;
+export const nytFresh = () => !!data.status.nyt && Date.now() - data.status.nyt < NYT_FRESH_MS;
+const RESULT_FIELDS = ['candidates', 'percent_reporting', 'last_updated', 'src', 'eevp'];
+
 const requestedAt = new Map();
+export const ingestForTest = (race) => ingest(race);
 function ingest(race, { detail = false, started = Date.now() } = {}) {
   if (!race || race.id === undefined) return;
   const id = Number(race.id);
   const prev = data.races.get(id);
+  if (race.src === 'nyt') {
+    // NYT is the main source: always apply it (its timestamps aren't comparable with civicAPI's).
+    const summary = { ...(prev || {}), ...race, id };
+    data.races.set(id, summary);
+    recordHistory(id, summary);
+    return;
+  }
+  if (prev?.src === 'nyt' && nytFresh()) {
+    // Keep NYT's votes, % and calls; take only civicAPI's descriptive fields (name, province, district...).
+    const meta = { ...race };
+    RESULT_FIELDS.forEach((k) => delete meta[k]);
+    delete meta.region_results; delete meta.maps;
+    data.races.set(id, { ...meta, ...prev, id });
+    if (detail) data.details.set(id, race);
+    return;
+  }
+  if (prev?.src === 'nyt') delete prev.last_updated; // NYT went quiet: let civicAPI take over without a timestamp clash
   const incomingTime = Date.parse(race.last_updated);
   const previousTime = Date.parse(prev?.last_updated);
   if (detail) {
@@ -94,7 +121,8 @@ function ingest(race, { detail = false, started = Date.now() } = {}) {
   }
   if (Number.isFinite(incomingTime) && Number.isFinite(previousTime)
     ? incomingTime < previousTime : started < (requestedAt.get(id) ?? 0)) return;
-  const summary = { ...(prev || {}), ...race, id };
+  const summary = { ...(prev || {}), ...race, id, src: 'civic' };
+  delete summary.eevp;
   if (!race.last_updated) delete summary.last_updated;
   requestedAt.set(id, started);
   delete summary.region_results;
@@ -130,6 +158,69 @@ function quickMargin(race) {
 function searchURL(params) {
   const q = new URLSearchParams({ startDate: DATE, endDate: DATE, country: 'US', limit: '1000', ...params });
   return `${BASE}/race/search?${q}`;
+}
+
+// ---------- The New York Times (main source for House, Senate, governor) ----------
+// These are the public data files behind NYT's own results pages. They are readable from any site (CORS *)
+// and refresh every few seconds. Race calls in them are AP's.
+export const NYT_BASE = 'https://static01.nyt.com/elections-assets/pages/data/2026-11-03';
+const NYT_PAGES = ['house', 'senate', 'governor'];
+const NYT_PARTY = { DEM: 'Democratic', GOP: 'Republican', IND: 'Independent', LIB: 'Libertarian', GRN: 'Green' };
+
+/** Convert one NYT race into the race shape the rest of the site uses (civicAPI's), keyed by our civicAPI id. */
+export function fromNyt(r) {
+  const m = /^([A-Z]{2})-(?:G|S_W)-([HSG])(?:-(\d+))?-/.exec(r?.nyt_id || '');
+  if (!m) return null;
+  const [, st, off, num] = m;
+  let id;
+  if (off === 'H') id = RACE_IDS.house[`${st}-AL`] || (num ? RACE_IDS.house[`${st}-${num.padStart(2, '0')}`] : null);
+  else id = (off === 'S' ? RACE_IDS.senate : RACE_IDS.governor)[st];
+  if (!id) return null;
+  const units = r.reporting_units || [];
+  const ru = units.find((u) => u.level === 'state' || u.level === 'district') || units[0];
+  if (!ru) return null;
+  const won = new Set(r.outcome?.won || []);
+  const meta = r.candidate_metadata || {};
+  const candidates = (ru.candidates || []).map((c) => {
+    const md = meta[c.nyt_id] || {};
+    const pid = md.party?.nyt_id;
+    return {
+      name: [md.first_name, md.last_name].filter(Boolean).join(' ') || c.nyt_id,
+      party: NYT_PARTY[pid] || md.party?.name || '',
+      votes: Number(c.votes?.total) || 0,
+      winner: won.has(c.nyt_id),
+      incumbent: !!md.incumbent,
+    };
+  });
+  const eevp = Number(ru.eevp) || 0;
+  return {
+    id, src: 'nyt', eevp, candidates,
+    // NYT's estimate of the share of the expected vote counted.
+    percent_reporting: eevp >= 1 ? Math.round(eevp) : Math.round(eevp * 10) / 10,
+    last_updated: r.updated_at || null,
+  };
+}
+
+let nytRequest;
+function fetchNyt() {
+  if (nytRequest) return nytRequest;
+  nytRequest = (async () => {
+    data.lastTry.nyt = Date.now();
+    const res = await Promise.allSettled(NYT_PAGES.map((p) => getJSON(`${NYT_BASE}/results-${p}.json`, { timeout: 45_000 })));
+    let ok = 0;
+    res.forEach((x) => {
+      if (x.status !== 'fulfilled' || !Array.isArray(x.value?.races)) return;
+      ok++;
+      for (const r of x.value.races) { const shaped = fromNyt(r); if (shaped) ingest(shaped); }
+    });
+    if (ok) { data.status.nyt = Date.now(); data.lastUpdate = Date.now(); }
+    if (ok === NYT_PAGES.length) delete data.errors.nyt;
+    else data.errors.nyt = `${NYT_PAGES.length - ok} of ${NYT_PAGES.length} NYT files failed: ${res.find((x) => x.status === 'rejected')?.reason?.message || 'unexpected format'}`;
+    persistHistory();
+    emit();
+    return ok > 0;
+  })().finally(() => { nytRequest = null; });
+  return nytRequest;
 }
 
 const searchRequests = new Map();
@@ -239,6 +330,8 @@ async function fetchPriorityRaces() {
 
 function refreshGeneral() {
   if (generalRequest) return generalRequest;
+  // While NYT is healthy, civicAPI's big House/Senate search is only a backup: refresh it every 2 minutes.
+  if (nytFresh() && data.status.general && Date.now() - data.status.general < 120_000) return Promise.resolve(true);
   generalRequest = (async () => {
     const ok = await fetchSearch('general', { election_type: 'General' });
     if (!ok) void fallbackGeneral();
@@ -266,8 +359,10 @@ export function startLive() {
   stopAll();
   data.mode = 'live';
   loadHistory();
+  stops.push(loop(fetchNyt, INTERVAL.nyt));
   stops.push(loop(refreshGeneral, INTERVAL.general));
-  stops.push(loop(() => data.errors.general ? fallbackGeneral() : undefined, 12_000, 12_000));
+  // civicAPI's one-race-at-a-time recovery is only needed when NYT isn't supplying results.
+  stops.push(loop(() => data.errors.general && !nytFresh() ? fallbackGeneral() : undefined, 12_000, 12_000));
   stops.push(loop(() => fetchSearch('statewide', { election_type: 'Statewide' }), INTERVAL.statewide, 1500));
   stops.push(loop(() => fetchSearch('wi', { province: 'WI', query: 'Wisconsin State', country: 'US' }), INTERVAL.wi, 3000));
   stops.push(loop(() => fetchSearch('mn', { province: 'MN', query: 'Minnesota State', country: 'US' }), INTERVAL.mn, 6000));
@@ -276,12 +371,13 @@ export function startLive() {
 }
 
 export async function refreshNow() {
-  const [general, statewide] = await Promise.all([
+  const [nyt, general, statewide] = await Promise.all([
+    fetchNyt(),
     refreshGeneral(),
     fetchSearch('statewide', { election_type: 'Statewide' }),
   ]);
-  const recovered = general ? 0 : await fallbackGeneral();
-  return { general, statewide, recovered, errors: { ...data.errors } };
+  const recovered = general || nyt ? 0 : await fallbackGeneral();
+  return { nyt, general, statewide, recovered, errors: { ...data.errors } };
 }
 
 /**
@@ -289,11 +385,15 @@ export async function refreshNow() {
  * currently failing; offline: nothing good for 6+ minutes; connecting: no successful load yet.
  */
 export function feedHealth() {
-  const last = data.status.general || null;
+  // House/Senate results are live if either NYT (main) or civicAPI's bulk feed is healthy.
+  const nytOk = data.status.nyt && !data.errors.nyt ? data.status.nyt : 0;
+  const civicOk = data.status.general && !data.errors.general ? data.status.general : 0;
+  const last = Math.max(data.status.nyt || 0, data.status.general || 0) || null;
   const everLoaded = Boolean(last || data.status.statewide || data.lastFallback);
-  if (!last) return { state: data.errors.general ? (everLoaded ? 'stale' : 'offline') : 'connecting', everLoaded, last };
+  if (!last) return { state: data.errors.general || data.errors.nyt ? (everLoaded ? 'stale' : 'offline') : 'connecting', everLoaded, last };
+  const healthy = Math.max(nytOk, civicOk);
   const age = Date.now() - last;
-  if (age < 100_000 && !data.errors.general) return { state: 'live', everLoaded, last, age };
+  if (healthy && Date.now() - healthy < 100_000) return { state: 'live', everLoaded, last, age };
   if (age < 360_000) return { state: 'stale', everLoaded, last, age };
   return { state: 'offline', everLoaded, last, age };
 }

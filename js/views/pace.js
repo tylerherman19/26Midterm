@@ -24,7 +24,7 @@ export function render() {
   return `<div class="grid pace-page">
     <section class="card wide">
       <div class="card-h"><h3>How fast each state counted in 2024</h3><span class="muted">guide p. 21 · share of the final 2024 count by hour (CT)</span></div>
-      <p class="small">The guide doesn't say which race or feed these figures come from. <b>Tonight</b> is civicAPI's "% reporting" for the state's main race. That is a different measure (it may be precincts or estimated vote), so compare the two only loosely.</p>
+      <p class="small">The guide doesn't say which race or feed these figures come from. <b>Tonight</b> is the "% in" for the state's main race: NYT's estimated share of the expected vote counted (civicAPI's "% reporting" if NYT is unavailable). Compare the two only loosely.</p>
       <div class="mobile-only">
         <label>State <select data-ui="paceState">${PACE.map(([st, name]) => `<option value="${st}" ${st === active[0] ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label>
         ${active[2] ? `<svg class="pace-mobile-chart" viewBox="0 0 300 110" role="img" aria-label="${esc(active[1])} 2024 counting pace: ${active[2].map((v, i) => `${HOURS[i]} ${v}%`).join(', ')}">
