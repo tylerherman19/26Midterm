@@ -112,7 +112,7 @@ const HEALTH_TEXT = {
 function renderStatus() {
   const h = feedHealth();
   const [cls, word] = HEALTH_TEXT[h.state] || HEALTH_TEXT.connecting;
-  const when = h.last ? `last update ${fmtClock(nightFromTs(h.last), { seconds: true })} (<span id="ago">${ago(h.last)}</span>)` : 'waiting for first data…';
+  const when = h.last ? `House/Senate checked ${fmtClock(nightFromTs(h.last), { seconds: true })} (<span id="ago">${ago(h.last)}</span>)` : 'waiting for first data…';
   const detail = h.state === 'stale' || h.state === 'offline' ? ' · retrying' : '';
   $('#status').innerHTML = `<button class="status-btn" data-health aria-expanded="${ui.healthOpen ? 'true' : 'false'}" title="Feed details">
     <span class="dot ${cls}" aria-hidden="true"></span><span class="st-txt"><b>${word}</b> <span class="muted">${when}${detail}</span></span></button>
@@ -129,6 +129,7 @@ function healthPanel() {
       const st = err ? (ok ? 'retrying after error' : 'failing') : !ok ? (data.lastTry[k] ? 'loading' : 'not started yet') : age > every * 3000 ? 'stale' : 'ok';
       return `<tr><th>${esc(label)}<small>every ${every}s</small></th><td class="fh-${st.split(' ')[0]}">${st}</td><td>${ok ? ago(ok) : '—'}</td></tr>${err ? `<tr><td colspan="3" class="muted small">${esc(err)}</td></tr>` : ''}`;
     }).join('')}</tbody></table>
+    ${data.errors.general && data.lastFallback ? `<p class="small muted">Priority races last refreshed ${ago(data.lastFallback)}.</p>` : ''}
     <p class="small muted">County results are fetched only for states whose polls have closed. If a feed is stale, numbers on the page are the last good data, not current.</p></div>`;
 }
 
@@ -194,8 +195,11 @@ function init() {
     b.disabled = true; b.classList.add('spin'); b.setAttribute('aria-busy', 'true');
     const r = await refreshNow();
     b.disabled = false; b.classList.remove('spin'); b.removeAttribute('aria-busy');
-    toast(r.ok ? { side: 'n', text: `Refreshed at ${fmtClock(nightFromTs(r.at), { seconds: true })} CT`, sub: '' }
-      : { side: 'r', text: 'Refresh failed: civicAPI did not respond', sub: Object.values(r.errors || {})[0] || 'Showing the last good data. Retrying automatically.' });
+    const refreshed = [r.general && 'House and Senate', r.statewide && 'governors and state chambers'].filter(Boolean);
+    if (r.recovered) refreshed.push(`${r.recovered} priority races`);
+    toast({ side: refreshed.length ? 'n' : 'r',
+      text: refreshed.length ? `Refreshed ${refreshed.join(' · ')}` : 'No feeds refreshed',
+      sub: r.general ? '' : 'The bulk House and Senate feed is still retrying.' });
     renderStatus();
   };
   $('#notify-btn').onclick = async () => {
@@ -255,7 +259,11 @@ function init() {
   window.addEventListener('hashchange', render);
   onToast(toast);
   onUpdate(() => { diffFeed(); if (ui.dragging || isTyping()) { pendingRender = true; renderTicker(); renderStatus(); return; } render({ background: true }); });
-  setHouseFallbackList(Object.keys(HOUSE_META));
+  setHouseFallbackList(() => {
+    const { route, params } = parseHash();
+    const district = ui.houseQuery.trim().toUpperCase().replace(/^([A-Z]{2})[- ]?(\d{1,2})$/, (_, state, number) => `${state}-${number.padStart(2, '0')}`);
+    return { focus: ['house', 'signals'].includes(route) ? [params.d, district] : [], watch: Object.keys(HOUSE_META) };
+  });
 
   resetFeed();
   startLive();

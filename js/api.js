@@ -24,6 +24,7 @@ export const data = {
   history: {}, // id -> [[nightMin, reporting, margin]]
   status: { general: null, statewide: null, wi: null, mn: null, details: null },
   lastTry: {},
+  lastFallback: null,
   errors: {},
   lastUpdate: 0,
   nextUpdate: 0,
@@ -60,6 +61,9 @@ async function getJSON(url, { timeout = 45_000 } = {}) {
     try { body = JSON.parse(text); } catch { throw new Error(`HTTP ${res.status}: ${text.slice(0, 80)}`); }
     if (!res.ok || body?.statusCode >= 400) throw new Error(body?.code || body?.message || `HTTP ${res.status}`);
     return body;
+  } catch (e) {
+    if (ctl.signal.aborted) throw new Error(`Request timed out after ${timeout / 1000}s`);
+    throw e;
   } finally {
     clearTimeout(timer);
     data.inflight--;
@@ -77,15 +81,25 @@ async function pool(items, n, fn) {
   await Promise.all(workers);
 }
 
-function ingest(race, { detail = false } = {}) {
+const requestedAt = new Map();
+function ingest(race, { detail = false, started = Date.now() } = {}) {
   if (!race || race.id === undefined) return;
   const id = Number(race.id);
   const prev = data.races.get(id);
+  const incomingTime = Date.parse(race.last_updated);
+  const previousTime = Date.parse(prev?.last_updated);
+  if (detail) {
+    const previousDetailTime = Date.parse(data.details.get(id)?.last_updated);
+    if (!(incomingTime < previousDetailTime)) data.details.set(id, race);
+  }
+  if (Number.isFinite(incomingTime) && Number.isFinite(previousTime)
+    ? incomingTime < previousTime : started < (requestedAt.get(id) ?? 0)) return;
   const summary = { ...(prev || {}), ...race, id };
+  if (!race.last_updated) delete summary.last_updated;
+  requestedAt.set(id, started);
   delete summary.region_results;
   delete summary.maps;
   data.races.set(id, summary);
-  if (detail) data.details.set(id, race);
   recordHistory(id, summary);
 }
 
@@ -118,19 +132,35 @@ function searchURL(params) {
   return `${BASE}/race/search?${q}`;
 }
 
-async function fetchSearch(key, params) {
-  data.lastTry[key] = Date.now();
-  try {
-    const body = await getJSON(searchURL(params), { timeout: 60_000 });
-    (body.races || []).forEach((r) => ingest(r));
-    data.status[key] = Date.now();
-    delete data.errors[key];
-    data.lastUpdate = Date.now();
-  } catch (e) {
-    data.errors[key] = `${e.message || e}`;
-  }
-  persistHistory();
-  emit();
+const searchRequests = new Map();
+const validRace = (race) => Number(race?.id) > 0 && Array.isArray(race.candidates);
+const generalIds = new Set([...Object.values(RACE_IDS.house), ...Object.values(RACE_IDS.senate)].map(Number));
+
+function fetchSearch(key, params) {
+  if (searchRequests.has(key)) return searchRequests.get(key);
+  const started = data.lastTry[key] = Date.now();
+  const request = (async () => {
+    try {
+      const body = await getJSON(searchURL(params), { timeout: 25_000 });
+      const races = Array.isArray(body?.races) ? body.races.filter(validRace) : [];
+      if (!races.length || (key === 'general' && !races.some((race) => generalIds.has(Number(race.id))))) {
+        throw new Error('civicAPI returned no usable race results');
+      }
+      races.forEach((race) => ingest(race, { started }));
+      data.status[key] = Date.now();
+      delete data.errors[key];
+      data.lastUpdate = Date.now();
+      return true;
+    } catch (e) {
+      data.errors[key] = e.message || String(e);
+      return false;
+    } finally {
+      persistHistory();
+      emit();
+    }
+  })().finally(() => searchRequests.delete(key));
+  searchRequests.set(key, request);
+  return request;
 }
 
 // Statewide guide races whose county tables we need
@@ -156,9 +186,11 @@ async function fetchDetails({ force = false } = {}) {
   if (!targets.length) return;
   let ok = 0;
   await pool(targets, 4, async (x) => {
+    const started = Date.now();
     try {
-      const body = await getJSON(`${BASE}/race/${x.id}`, { timeout: 30_000 });
-      ingest({ ...body, id: x.id }, { detail: true });
+      const body = await getJSON(`${BASE}/race/${x.id}`, { timeout: 15_000 });
+      if (!validRace(body) || Number(body.id) !== x.id) throw new Error('civicAPI returned invalid race detail');
+      ingest(body, { detail: true, started });
       ok++;
     } catch (e) {
       data.errors.details = `${e.message || e}`;
@@ -169,13 +201,42 @@ async function fetchDetails({ force = false } = {}) {
   emit();
 }
 
-// If the big search endpoint is failing, fall back to fetching the watched House seats one by one.
-async function fallbackHouse(districts) {
-  const ids = districts.map((d) => RACE_IDS.house[d]).filter(Boolean);
-  await pool(ids, 3, async (id) => {
-    try { ingest({ ...(await getJSON(`${BASE}/race/${id}`, { timeout: 30_000 })), id }); } catch { /* ignore */ }
+let fallbackRaces = () => ({ focus: [], watch: [] });
+let fallbackRound = 0;
+let generalRequest;
+export function setHouseFallbackList(districts) { fallbackRaces = districts; }
+
+async function fallbackGeneral() {
+  const districts = fallbackRaces();
+  const focused = districts.focus.map((district) => RACE_IDS.house[district]).filter(Boolean);
+  const watch = districts.watch.map((district) => RACE_IDS.house[district]).filter(Boolean);
+  const senate = Object.values(RACE_IDS.senate);
+  const batch = Array.from({ length: Math.min(3, watch.length) }, (_, i) => watch[(fallbackRound * 3 + i) % watch.length]);
+  batch.push(senate[fallbackRound % senate.length]);
+  fallbackRound++;
+  let recovered = 0;
+  await pool([...new Set([...focused.slice(0, 2), ...batch])], 2, async (id) => {
+    const started = Date.now();
+    const race = await getJSON(`${BASE}/race/${id}`, { timeout: 10_000 });
+    if (!validRace(race) || Number(race.id) !== id) return;
+    ingest(race, { started });
+    recovered++;
+    data.lastFallback = Date.now();
+    emit();
   });
-  emit();
+  persistHistory();
+  return recovered;
+}
+
+function refreshGeneral() {
+  if (generalRequest) return generalRequest;
+  generalRequest = (async () => {
+    const ok = await fetchSearch('general', { election_type: 'General' });
+    const recovered = ok ? 0 : await fallbackGeneral();
+    data.nextUpdate = Date.now() + INTERVAL.general * (ok ? 1 : 2);
+    return { ok, recovered };
+  })().finally(() => { generalRequest = null; });
+  return generalRequest;
 }
 
 // ---------- polling loops ----------
@@ -185,25 +246,18 @@ function loop(fn, ms, initialDelay = 0) {
   const run = async () => {
     if (stopped) return;
     if (document.hidden && data.mode === 'live') { timers.push(setTimeout(run, 5000)); return; }
-    await fn();
-    if (!stopped) timers.push(setTimeout(run, ms));
+    const result = await fn();
+    if (!stopped) timers.push(setTimeout(run, result?.ok === false || result === false ? ms * 2 : ms));
   };
   timers.push(setTimeout(run, initialDelay));
   return () => { stopped = true; };
 }
 let stops = [];
-let houseFallbackList = [];
-export function setHouseFallbackList(list) { houseFallbackList = list; }
-
 export function startLive() {
   stopAll();
   data.mode = 'live';
   loadHistory();
-  stops.push(loop(async () => {
-    await fetchSearch('general', { election_type: 'General' });
-    data.nextUpdate = Date.now() + INTERVAL.general;
-    if (data.errors.general && !data.status.general && houseFallbackList.length) await fallbackHouse(houseFallbackList);
-  }, INTERVAL.general));
+  stops.push(loop(refreshGeneral, INTERVAL.general));
   stops.push(loop(() => fetchSearch('statewide', { election_type: 'Statewide' }), INTERVAL.statewide, 1500));
   stops.push(loop(() => fetchSearch('wi', { province: 'WI', query: 'Wisconsin State', country: 'US' }), INTERVAL.wi, 3000));
   stops.push(loop(() => fetchSearch('mn', { province: 'MN', query: 'Minnesota State', country: 'US' }), INTERVAL.mn, 6000));
@@ -212,15 +266,11 @@ export function startLive() {
 }
 
 export async function refreshNow() {
-  const before = { ...data.status };
-  await Promise.all([
-    fetchSearch('general', { election_type: 'General' }),
+  const [general, statewide] = await Promise.all([
+    refreshGeneral(),
     fetchSearch('statewide', { election_type: 'Statewide' }),
-    fetchDetails({ force: true }),
   ]);
-  data.nextUpdate = Date.now() + INTERVAL.general;
-  const ok = data.status.general !== before.general || data.status.statewide !== before.statewide;
-  return { ok, at: Date.now(), errors: { ...data.errors } };
+  return { general: general.ok, statewide, recovered: general.recovered, errors: { ...data.errors } };
 }
 
 /**
@@ -228,9 +278,9 @@ export async function refreshNow() {
  * currently failing; offline: nothing good for 6+ minutes; connecting: no successful load yet.
  */
 export function feedHealth() {
-  const last = Math.max(data.status.general || 0, data.status.statewide || 0);
-  const everLoaded = last > 0;
-  if (!everLoaded) return { state: Object.keys(data.errors).length ? 'offline' : 'connecting', everLoaded, last: null };
+  const last = data.status.general || null;
+  const everLoaded = Boolean(last || data.status.statewide || data.lastFallback);
+  if (!last) return { state: data.errors.general ? (everLoaded ? 'stale' : 'offline') : 'connecting', everLoaded, last };
   const age = Date.now() - last;
   if (age < 100_000 && !data.errors.general) return { state: 'live', everLoaded, last, age };
   if (age < 360_000) return { state: 'stale', everLoaded, last, age };
