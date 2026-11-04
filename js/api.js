@@ -142,7 +142,7 @@ function fetchSearch(key, params) {
   const started = data.lastTry[key] = Date.now();
   const request = (async () => {
     try {
-      const body = await getJSON(searchURL(params), { timeout: 25_000 });
+      const body = await getJSON(searchURL(params), { timeout: key === 'general' ? 45_000 : 25_000 });
       const races = Array.isArray(body?.races) ? body.races.filter(validRace) : [];
       if (!races.length || (key === 'general' && !races.some((race) => generalIds.has(Number(race.id))))) {
         throw new Error('civicAPI returned no usable race results');
@@ -205,20 +205,28 @@ async function fetchDetails({ force = false } = {}) {
 let fallbackRaces = () => ({ focus: [], watch: [] });
 let fallbackRound = 0;
 let generalRequest;
+let fallbackRequest;
 export function setHouseFallbackList(districts) { fallbackRaces = districts; }
 
-async function fallbackGeneral() {
+function fallbackGeneral() {
+  if (!fallbackRequest) fallbackRequest = fetchPriorityRaces().finally(() => { fallbackRequest = null; });
+  return fallbackRequest;
+}
+
+async function fetchPriorityRaces() {
   const districts = fallbackRaces();
   const focused = districts.focus.map((district) => RACE_IDS.house[district]).filter(Boolean);
   const watch = districts.watch.map((district) => RACE_IDS.house[district]).filter(Boolean);
   const senate = Object.values(RACE_IDS.senate);
-  const batch = Array.from({ length: Math.min(3, watch.length) }, (_, i) => watch[(fallbackRound * 3 + i) % watch.length]);
-  batch.push(senate[fallbackRound % senate.length]);
+  const otherHouse = Object.values(RACE_IDS.house).filter((id) => !watch.includes(id));
+  const batch = Array.from({ length: Math.min(2, watch.length) }, (_, i) => watch[(fallbackRound * 2 + i) % watch.length]);
+  batch.push(otherHouse[fallbackRound % otherHouse.length],
+    senate[(fallbackRound * 2) % senate.length], senate[(fallbackRound * 2 + 1) % senate.length]);
   fallbackRound++;
   let recovered = 0;
-  await pool([...new Set([...focused.slice(0, 2), ...batch])], 2, async (id) => {
+  await pool([...new Set([...focused.slice(0, 2), ...batch])], 3, async (id) => {
     const started = Date.now();
-    const race = await getJSON(`${BASE}/race/${id}`, { timeout: 10_000 });
+    const race = await getJSON(`${BASE}/race/${id}`, { timeout: 15_000 });
     if (!validDetail(race, id)) return;
     ingest({ ...race, id }, { started });
     recovered++;
@@ -233,9 +241,9 @@ function refreshGeneral() {
   if (generalRequest) return generalRequest;
   generalRequest = (async () => {
     const ok = await fetchSearch('general', { election_type: 'General' });
-    const recovered = ok ? 0 : await fallbackGeneral();
+    if (!ok) void fallbackGeneral();
     data.nextUpdate = Date.now() + INTERVAL.general * (ok ? 1 : 2);
-    return { ok, recovered };
+    return ok;
   })().finally(() => { generalRequest = null; });
   return generalRequest;
 }
@@ -259,6 +267,7 @@ export function startLive() {
   data.mode = 'live';
   loadHistory();
   stops.push(loop(refreshGeneral, INTERVAL.general));
+  stops.push(loop(() => data.errors.general ? fallbackGeneral() : undefined, 12_000, 12_000));
   stops.push(loop(() => fetchSearch('statewide', { election_type: 'Statewide' }), INTERVAL.statewide, 1500));
   stops.push(loop(() => fetchSearch('wi', { province: 'WI', query: 'Wisconsin State', country: 'US' }), INTERVAL.wi, 3000));
   stops.push(loop(() => fetchSearch('mn', { province: 'MN', query: 'Minnesota State', country: 'US' }), INTERVAL.mn, 6000));
@@ -271,7 +280,8 @@ export async function refreshNow() {
     refreshGeneral(),
     fetchSearch('statewide', { election_type: 'Statewide' }),
   ]);
-  return { general: general.ok, statewide, recovered: general.recovered, errors: { ...data.errors } };
+  const recovered = general ? 0 : await fallbackGeneral();
+  return { general, statewide, recovered, errors: { ...data.errors } };
 }
 
 /**
